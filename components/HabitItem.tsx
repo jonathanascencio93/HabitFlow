@@ -15,14 +15,23 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// Format HH:MM to readable time
+const formatTime = (time: string): string => {
+    const [h, m] = time.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hour = h % 12 || 12;
+    return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
+};
+
 interface HabitItemProps {
     habit: Habit;
     onToggle: (id: string) => void;
     onPostpone?: (id: string) => void;
     onSkip?: (id: string) => void;
+    onTimer?: (id: string) => void;
 }
 
-export const HabitItem = ({ habit, onToggle, onPostpone, onSkip }: HabitItemProps) => {
+export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer }: HabitItemProps) => {
     const scale = useSharedValue(1);
     const isDone = habit.status === 'done';
     const [expanded, setExpanded] = useState(false);
@@ -83,11 +92,24 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip }: HabitItemProp
                                 )}
                             </View>
                         </TouchableOpacity>
-                        <Text style={[styles.title, isDone && styles.titleCompleted]} numberOfLines={1}>
-                            {habit.title}
-                        </Text>
-                        <View style={[styles.pointsPill, isDone && styles.pointsPillCompleted]}>
-                            <Text style={[styles.pointsText, isDone && styles.pointsTextCompleted]}>+{habit.pointsValue}</Text>
+                        <View style={styles.titleContainer}>
+                            <Text style={[styles.title, isDone && styles.titleCompleted]} numberOfLines={1}>
+                                {habit.title}
+                            </Text>
+                            {habit.dueTime && !isDone && (
+                                <Text style={styles.dueTimeText}>Due by {formatTime(habit.dueTime)}</Text>
+                            )}
+                        </View>
+                        <View style={styles.rightRow}>
+                            {habit.timerMinutes && !isDone ? (
+                                <View style={styles.timerBadge}>
+                                    <FontAwesome5 name="clock" size={10} color="#FF6B6B" />
+                                    <Text style={styles.timerBadgeText}>{habit.timerMinutes}m</Text>
+                                </View>
+                            ) : null}
+                            <View style={[styles.pointsPill, isDone && styles.pointsPillCompleted]}>
+                                <Text style={[styles.pointsText, isDone && styles.pointsTextCompleted]}>+{habit.pointsValue}</Text>
+                            </View>
                         </View>
                     </View>
 
@@ -100,6 +122,15 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip }: HabitItemProp
                                 </View>
                                 <Text style={styles.actionLabel}>Done</Text>
                             </TouchableOpacity>
+
+                            {habit.timerMinutes && onTimer ? (
+                                <TouchableOpacity style={styles.actionButton} onPress={() => { setExpanded(false); onTimer(habit.id); }}>
+                                    <View style={[styles.actionIcon, { backgroundColor: '#FFF0E8' }]}>
+                                        <FontAwesome5 name="stopwatch" size={12} color="#FF8C42" />
+                                    </View>
+                                    <Text style={styles.actionLabel}>Timer</Text>
+                                </TouchableOpacity>
+                            ) : null}
 
                             {onSkip && (
                                 <TouchableOpacity style={styles.actionButton} onPress={handleSkip}>
@@ -171,17 +202,43 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#222222',
         fontWeight: '500',
-        flex: 1,
     },
     titleCompleted: {
         color: '#4A8C4A',
+    },
+    titleContainer: {
+        flex: 1,
+    },
+    dueTimeText: {
+        fontSize: 12,
+        color: '#999999',
+        marginTop: 2,
+    },
+    rightRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginLeft: 8,
+    },
+    timerBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        backgroundColor: '#FFF0E8',
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        borderRadius: 8,
+    },
+    timerBadgeText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#FF8C42',
     },
     pointsPill: {
         backgroundColor: '#F0F0F0',
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 12,
-        marginLeft: 8,
     },
     pointsPillCompleted: {
         backgroundColor: '#2D2D2D',

@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Switch } from 'react-native';
 import { useHabit } from '@/src/context/HabitContext';
 import { useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { RecurrenceType, RecurrenceRule } from '@/src/models/types';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -13,9 +14,16 @@ export default function AddHabitScreen() {
     const [category, setCategory] = useState<'morning' | 'work' | 'health' | 'chore' | 'habit'>('habit');
     const [points, setPoints] = useState('10');
     const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('daily');
-    const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]); // Mon-Fri default
-    const [weeklyDay, setWeeklyDay] = useState(new Date().getDay()); // default to today's day
+    const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
+    const [weeklyDay, setWeeklyDay] = useState(new Date().getDay());
     const [dayOfMonth, setDayOfMonth] = useState('1');
+    const [timerMinutes, setTimerMinutes] = useState<number>(0);
+    const [hasDueTime, setHasDueTime] = useState(false);
+    const [dueTime, setDueTime] = useState(new Date());
+    const [hasReminder, setHasReminder] = useState(false);
+    const [reminderTime, setReminderTime] = useState(new Date());
+    const [showDuePicker, setShowDuePicker] = useState(false);
+    const [showReminderPicker, setShowReminderPicker] = useState(false);
 
     const { addHabit } = useHabit();
     const router = useRouter();
@@ -53,11 +61,16 @@ export default function AddHabitScreen() {
             return;
         }
 
+        const toHHMM = (d: Date) => `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+
         addHabit({
             title: title.trim(),
             category,
             pointsValue: parseInt(points) || 10,
             recurrence: buildRecurrence(),
+            timerMinutes: timerMinutes > 0 ? timerMinutes : undefined,
+            dueTime: hasDueTime ? toHHMM(dueTime) : undefined,
+            reminderTime: hasReminder ? toHHMM(reminderTime) : undefined,
         });
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -225,6 +238,87 @@ export default function AddHabitScreen() {
                                 />
                             </View>
                         )}
+                        {/* Timer duration */}
+                        <Text style={styles.label}>Timer</Text>
+                        <View style={styles.pillContainer}>
+                            {[0, 5, 10, 15, 30, 60].map(mins => (
+                                <TouchableOpacity
+                                    key={mins}
+                                    style={[styles.pill, timerMinutes === mins && styles.pillActive]}
+                                    onPress={() => setTimerMinutes(mins)}
+                                >
+                                    <Text style={[styles.pillText, timerMinutes === mins && styles.pillTextActive]}>
+                                        {mins === 0 ? 'None' : `${mins}m`}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        {/* Due Time */}
+                        <View style={styles.toggleRow}>
+                            <View style={styles.toggleInfo}>
+                                <FontAwesome5 name="clock" size={14} color="#FF6B6B" />
+                                <Text style={styles.toggleLabel}>Due Time</Text>
+                            </View>
+                            <Switch
+                                value={hasDueTime}
+                                onValueChange={(v) => { setHasDueTime(v); if (v && !hasReminder) { setHasReminder(true); const r = new Date(dueTime); r.setMinutes(r.getMinutes() - 15); setReminderTime(r); } }}
+                                trackColor={{ false: '#E0E0E0', true: '#FF6B6B' }}
+                                thumbColor="#FFFFFF"
+                            />
+                        </View>
+                        {hasDueTime && (
+                            <TouchableOpacity style={styles.timePicker} onPress={() => setShowDuePicker(true)}>
+                                <Text style={styles.timePickerText}>
+                                    {dueTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </Text>
+                                <FontAwesome5 name="chevron-right" size={12} color="#999" />
+                            </TouchableOpacity>
+                        )}
+                        {showDuePicker && (
+                            <DateTimePicker
+                                value={dueTime}
+                                mode="time"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={(e: DateTimePickerEvent, d?: Date) => {
+                                    setShowDuePicker(Platform.OS === 'ios');
+                                    if (d) { setDueTime(d); if (hasReminder) { const r = new Date(d); r.setMinutes(r.getMinutes() - 15); setReminderTime(r); } }
+                                }}
+                            />
+                        )}
+
+                        {/* Reminder */}
+                        <View style={styles.toggleRow}>
+                            <View style={styles.toggleInfo}>
+                                <FontAwesome5 name="bell" size={14} color="#FF8C42" />
+                                <Text style={styles.toggleLabel}>Reminder</Text>
+                            </View>
+                            <Switch
+                                value={hasReminder}
+                                onValueChange={setHasReminder}
+                                trackColor={{ false: '#E0E0E0', true: '#FF8C42' }}
+                                thumbColor="#FFFFFF"
+                            />
+                        </View>
+                        {hasReminder && (
+                            <TouchableOpacity style={styles.timePicker} onPress={() => setShowReminderPicker(true)}>
+                                <Text style={styles.timePickerText}>
+                                    {reminderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </Text>
+                                <FontAwesome5 name="chevron-right" size={12} color="#999" />
+                            </TouchableOpacity>
+                        )}
+                        {showReminderPicker && (
+                            <DateTimePicker
+                                value={reminderTime}
+                                mode="time"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={(e: DateTimePickerEvent, d?: Date) => {
+                                    setShowReminderPicker(Platform.OS === 'ios');
+                                    if (d) setReminderTime(d);
+                                }}
+                            />
+                        )}
                     </View>
 
                     <TouchableOpacity
@@ -385,5 +479,38 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 18,
         fontWeight: '700',
+    },
+    toggleRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 16,
+        paddingVertical: 4,
+    },
+    toggleInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    toggleLabel: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#222222',
+    },
+    timePicker: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#F7F7F7',
+        borderRadius: 12,
+        padding: 14,
+        marginTop: 8,
+        borderWidth: 1,
+        borderColor: '#EBEBEB',
+    },
+    timePickerText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#222222',
     },
 });

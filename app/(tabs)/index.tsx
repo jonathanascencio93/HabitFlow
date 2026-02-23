@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, SafeAreaView, TouchableOpacity, Alert, Modal, Platform } from 'react-native';
 import { useHabit } from '@/src/context/HabitContext';
 import { HabitItem } from '@/components/HabitItem';
+import { TimerModal } from '@/components/TimerModal';
 import { UserStatsBanner } from '@/components/UserStatsBanner';
 import { HealthConnectBanner } from '@/components/HealthConnectBanner';
 import { auth } from '@/src/config/firebase';
@@ -35,6 +36,9 @@ export default function DashboardScreen() {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerDate, setPickerDate] = useState(addDays(1));
+  const [timerModal, setTimerModal] = useState<{ visible: boolean; habitId: string; habitTitle: string; duration: number }>({
+    visible: false, habitId: '', habitTitle: '', duration: 0,
+  });
 
   const morningActive = activeHabits.filter(h => h.category === 'morning');
   const choreActive = activeHabits.filter(h => h.category === 'chore');
@@ -61,6 +65,17 @@ export default function DashboardScreen() {
     postponeHabit(postponeModal.habitId, targetDate);
     setPostponeModal({ visible: false, habitId: '', habitTitle: '' });
     setShowDatePicker(false);
+  };
+
+  const handleTimerOpen = (id: string) => {
+    const habit = [...activeHabits, ...completedHabits].find(h => h.id === id);
+    if (habit?.timerMinutes) {
+      setTimerModal({ visible: true, habitId: id, habitTitle: habit.title, duration: habit.timerMinutes });
+    }
+  };
+
+  const handleTimerComplete = () => {
+    toggleHabitCompletion(timerModal.habitId);
   };
 
   const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -92,6 +107,7 @@ export default function DashboardScreen() {
             onToggle={toggleHabitCompletion}
             onPostpone={handlePostponeRequest}
             onSkip={skipHabit}
+            onTimer={handleTimerOpen}
           />
         ))}
       </View>
@@ -279,6 +295,15 @@ export default function DashboardScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Timer Modal */}
+      <TimerModal
+        visible={timerModal.visible}
+        habitTitle={timerModal.habitTitle}
+        durationMinutes={timerModal.duration}
+        onComplete={handleTimerComplete}
+        onClose={() => setTimerModal({ ...timerModal, visible: false })}
+      />
     </SafeAreaView>
   );
 }

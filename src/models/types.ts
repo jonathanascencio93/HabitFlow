@@ -17,7 +17,9 @@ export interface Habit {
   pointsValue: number;
   recurrence?: RecurrenceRule;
   timerMinutes?: number;
-  postponedUntil?: string;   // ISO date string — habit reappears on this date
+  postponedUntil?: string;
+  dueTime?: string;          // HH:MM — when this activity should be done by
+  reminderTime?: string;     // HH:MM — when to send push notification
 }
 
 export interface UserStats {
