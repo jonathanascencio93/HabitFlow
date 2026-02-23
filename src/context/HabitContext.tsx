@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Habit, UserStats, RecurrenceRule } from '../models/types';
+import { requestNotificationPermissions, scheduleHabitReminder, cancelHabitReminder, rescheduleAllReminders } from '../utils/notifications';
 
 // Default habits for the MVP
 const DEFAULT_HABITS: Habit[] = [
@@ -122,6 +123,13 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
                 if (storedStats) setUserStats(JSON.parse(storedStats));
 
                 setIsLoaded(true);
+
+                // Request notification permissions and schedule reminders
+                const hasPerms = await requestNotificationPermissions();
+                if (hasPerms) {
+                    const habitsToSchedule = storedHabits ? migrateHabits(JSON.parse(storedHabits)) : DEFAULT_HABITS;
+                    await rescheduleAllReminders(habitsToSchedule);
+                }
             } catch (e) {
                 console.error('Failed to load local data', e);
             }
@@ -179,6 +187,10 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
             status: 'pending',
         };
         saveHabits([...habits, newHabit]);
+        // Schedule notification if reminder is set
+        if (newHabit.reminderTime) {
+            scheduleHabitReminder(newHabit);
+        }
     };
 
     const toggleHabitCompletion = (id: string) => {
@@ -212,6 +224,7 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
             return habit;
         });
         saveHabits(updatedHabits);
+        cancelHabitReminder(id);
     };
 
     const unpostponeHabit = (id: string) => {
@@ -222,6 +235,9 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
             return habit;
         });
         saveHabits(updatedHabits);
+        // Reschedule notification
+        const habit = updatedHabits.find(h => h.id === id);
+        if (habit?.reminderTime) scheduleHabitReminder(habit);
     };
 
     const skipHabit = (id: string) => {
@@ -232,6 +248,7 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
             return habit;
         });
         saveHabits(updatedHabits);
+        cancelHabitReminder(id);
     };
 
     const resetDailyProgression = () => {
