@@ -36,6 +36,16 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer }: Habi
     const isDone = habit.status === 'done';
     const [expanded, setExpanded] = useState(false);
 
+    // Check if overdue (past due time and still pending)
+    const isOverdue = (() => {
+        if (!habit.dueTime || isDone) return false;
+        const now = new Date();
+        const [h, m] = habit.dueTime.split(':').map(Number);
+        const dueDate = new Date();
+        dueDate.setHours(h, m, 0, 0);
+        return now > dueDate;
+    })();
+
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
     }));
@@ -82,7 +92,7 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer }: Habi
     return (
         <Animated.View style={[animatedStyle]}>
             <Pressable onPress={handleCardPress}>
-                <View style={[styles.container, isDone && styles.containerCompleted]}>
+                <View style={[styles.container, isDone && styles.containerCompleted, isOverdue && styles.containerOverdue]}>
                     {/* Main row: checkbox + title + points */}
                     <View style={styles.mainRow}>
                         <TouchableOpacity onPress={handleCheckbox} style={styles.checkboxTouchable}>
@@ -97,7 +107,9 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer }: Habi
                                 {habit.title}
                             </Text>
                             {habit.dueTime && !isDone && (
-                                <Text style={styles.dueTimeText}>Due by {formatTime(habit.dueTime)}</Text>
+                                <Text style={[styles.dueTimeText, isOverdue && styles.dueTimeOverdue]}>
+                                    {isOverdue ? '⚠ Overdue' : `Due by ${formatTime(habit.dueTime)}`}
+                                </Text>
                             )}
                         </View>
                         <View style={styles.rightRow}>
@@ -174,6 +186,11 @@ const styles = StyleSheet.create({
         borderColor: '#C5E8C5',
         borderLeftColor: '#A8D5A2',
     },
+    containerOverdue: {
+        borderColor: '#FFD6A0',
+        borderLeftColor: '#FF8C42',
+        backgroundColor: '#FFFAF5',
+    },
     mainRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -213,6 +230,10 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#999999',
         marginTop: 2,
+    },
+    dueTimeOverdue: {
+        color: '#FF6B6B',
+        fontWeight: '600',
     },
     rightRow: {
         flexDirection: 'row',
