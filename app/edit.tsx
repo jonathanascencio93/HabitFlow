@@ -115,22 +115,32 @@ export default function EditHabitScreen() {
 
     const handleDelete = () => {
         if (!id) return;
-        Alert.alert(
-            "Delete Activity",
-            "Are you sure you want to permanently delete this activity?",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () => {
-                        deleteHabit(id);
-                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                        router.back();
+
+        const performDelete = () => {
+            deleteHabit(id);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            router.back();
+        };
+
+        if (Platform.OS === 'web') {
+            const confirmed = window.confirm("Are you sure you want to permanently delete this activity?");
+            if (confirmed) {
+                performDelete();
+            }
+        } else {
+            Alert.alert(
+                "Delete Activity",
+                "Are you sure you want to permanently delete this activity?",
+                [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: performDelete
                     }
-                }
-            ]
-        );
+                ]
+            );
+        }
     };
 
     const handleMicPress = () => {
