@@ -29,9 +29,10 @@ interface HabitItemProps {
     onPostpone?: (id: string) => void;
     onSkip?: (id: string) => void;
     onTimer?: (id: string) => void;
+    onExtendDue?: (id: string, newTime: string) => void;
 }
 
-export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer }: HabitItemProps) => {
+export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExtendDue }: HabitItemProps) => {
     const scale = useSharedValue(1);
     const isDone = habit.status === 'done';
     const [expanded, setExpanded] = useState(false);
@@ -89,6 +90,17 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer }: Habi
         onSkip?.(habit.id);
     };
 
+    const handleExtend = () => {
+        if (!habit.dueTime || !onExtendDue) return;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        const [h, m] = habit.dueTime.split(':').map(Number);
+        const date = new Date();
+        date.setHours(h + 1, m); // Add 1 hour
+        const newDueTime = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        onExtendDue(habit.id, newDueTime);
+        setExpanded(false);
+    };
+
     return (
         <Animated.View style={[animatedStyle]}>
             <Pressable onPress={handleCardPress}>
@@ -141,6 +153,15 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer }: Habi
                                         <FontAwesome5 name="stopwatch" size={12} color="#FF8C42" />
                                     </View>
                                     <Text style={styles.actionLabel}>Timer</Text>
+                                </TouchableOpacity>
+                            ) : null}
+
+                            {isOverdue && onExtendDue ? (
+                                <TouchableOpacity style={styles.actionButton} onPress={handleExtend}>
+                                    <View style={[styles.actionIcon, { backgroundColor: '#FFF5E6' }]}>
+                                        <FontAwesome5 name="clock" size={12} color="#FF8C42" />
+                                    </View>
+                                    <Text style={styles.actionLabel}>+1h</Text>
                                 </TouchableOpacity>
                             ) : null}
 

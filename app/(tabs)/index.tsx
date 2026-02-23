@@ -27,7 +27,7 @@ const addDays = (days: number): Date => {
 const toISODate = (d: Date) => d.toISOString().split('T')[0];
 
 export default function DashboardScreen() {
-  const { activeHabits, completedHabits, postponedHabits, skippedHabits, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit } = useHabit();
+  const { activeHabits, completedHabits, postponedHabits, skippedHabits, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, updateHabitDueTime } = useHabit();
   const { user } = useAuth();
   const displayName = user?.displayName || 'there';
   const [showCompleted, setShowCompleted] = useState(true);
@@ -108,6 +108,7 @@ export default function DashboardScreen() {
             onPostpone={handlePostponeRequest}
             onSkip={skipHabit}
             onTimer={handleTimerOpen}
+            onExtendDue={updateHabitDueTime}
           />
         ))}
       </View>

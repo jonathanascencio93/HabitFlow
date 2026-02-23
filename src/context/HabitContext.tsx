@@ -32,6 +32,7 @@ interface HabitContextType {
     postponeHabit: (id: string, targetDate: string) => void;
     unpostponeHabit: (id: string) => void;
     skipHabit: (id: string) => void;
+    updateHabitDueTime: (id: string, newDueTime: string) => void;
     resetDailyProgression: () => void;
 }
 
@@ -262,10 +263,20 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
         saveHabits(resetHabits);
     };
 
+    const updateHabitDueTime = (id: string, newDueTime: string) => {
+        const updatedHabits = habits.map(habit => {
+            if (habit.id === id) {
+                return { ...habit, dueTime: newDueTime };
+            }
+            return habit;
+        });
+        saveHabits(updatedHabits);
+    };
+
     return (
         <HabitContext.Provider value={{
             habits, todaysHabits, activeHabits, completedHabits, postponedHabits, skippedHabits,
-            userStats, addHabit, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, resetDailyProgression,
+            userStats, addHabit, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, updateHabitDueTime, resetDailyProgression,
         }}>
             {children}
         </HabitContext.Provider>
