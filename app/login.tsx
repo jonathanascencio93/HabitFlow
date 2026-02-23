@@ -87,7 +87,9 @@ export default function LoginScreen() {
 
                 {/* Logo & Welcome */}
                 <View style={styles.iconContainer}>
-                    <FontAwesome5 name="water" size={48} color="#00A699" />
+                    <View style={styles.iconCircleBg}>
+                        <FontAwesome5 name="water" size={32} color="#FF6B6B" />
+                    </View>
                 </View>
                 <Text style={styles.title}>HabitFlow</Text>
                 <Text style={styles.subtitle}>
@@ -208,7 +210,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#FFF5EE',
     },
     content: {
         flex: 1,
@@ -218,6 +220,14 @@ const styles = StyleSheet.create({
     iconContainer: {
         alignItems: 'center',
         marginBottom: 24,
+    },
+    iconCircleBg: {
+        width: 72,
+        height: 72,
+        borderRadius: 20,
+        backgroundColor: '#FFE4E1',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     title: {
         fontSize: 36,
@@ -298,14 +308,14 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     button: {
-        backgroundColor: '#00A699',
-        borderRadius: 12,
+        backgroundColor: '#FF6B6B',
+        borderRadius: 24,
         paddingVertical: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#00A699',
+        shadowColor: '#FF6B6B',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.25,
         shadowRadius: 8,
         elevation: 4,
     },
@@ -322,7 +332,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     toggleText: {
-        color: '#00A699',
+        color: '#FF6B6B',
         fontSize: 15,
         fontWeight: '600',
     },

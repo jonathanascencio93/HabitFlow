@@ -111,7 +111,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F7F7F7',
+    backgroundColor: '#FFF5EE',
   },
   container: {
     flex: 1,
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     padding: 8,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: '#FFE4E1',
     borderRadius: 20,
     width: 40,
     height: 40,

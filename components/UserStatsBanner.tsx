@@ -9,17 +9,19 @@ export const UserStatsBanner = () => {
     return (
         <View style={styles.container}>
             <View style={styles.statBox}>
-                <FontAwesome5 name="fire" size={24} color="#FF5A5F" />
+                <View style={styles.iconCircle}>
+                    <FontAwesome5 name="fire" size={18} color="#FF5A5F" />
+                </View>
                 <View style={styles.textContainer}>
                     <Text style={styles.statValue}>{userStats.currentStreak}</Text>
                     <Text style={styles.statLabel}>Day Streak</Text>
                 </View>
             </View>
 
-            <View style={styles.divider} />
-
             <View style={styles.statBox}>
-                <FontAwesome5 name="gem" size={24} color="#00A699" />
+                <View style={[styles.iconCircle, styles.iconCircleGreen]}>
+                    <FontAwesome5 name="gem" size={18} color="#A8D5A2" />
+                </View>
                 <View style={styles.textContainer}>
                     <Text style={styles.statValue}>{userStats.totalPoints}</Text>
                     <Text style={styles.statLabel}>Total Points</Text>
@@ -32,35 +34,38 @@ export const UserStatsBanner = () => {
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        backgroundColor: '#ffffff',
-        borderRadius: 16,
-        padding: 16,
+        gap: 12,
         marginVertical: 16,
         marginHorizontal: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4, // for android
     },
     statBox: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#F0F0F0',
         gap: 12,
     },
-    divider: {
-        width: 1,
-        backgroundColor: '#EBEBEB',
-        marginHorizontal: 8,
+    iconCircle: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#FFF0F0',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconCircleGreen: {
+        backgroundColor: '#F0FAF0',
     },
     textContainer: {
         flexDirection: 'column',
     },
     statValue: {
-        fontSize: 20,
-        fontWeight: '700',
+        fontSize: 22,
+        fontWeight: '800',
         color: '#222222',
     },
     statLabel: {

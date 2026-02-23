@@ -49,7 +49,7 @@ export const HabitItem = ({ habit, onToggle }: HabitItemProps) => {
 
     return (
         <Pressable onPress={handlePress}>
-            <Animated.View style={[styles.container, animatedStyle]}>
+            <Animated.View style={[styles.container, habit.isCompleted && styles.containerCompleted, animatedStyle]}>
                 <View style={styles.leftContent}>
                     <View style={[styles.checkbox, habit.isCompleted && styles.checkboxActive]}>
                         {habit.isCompleted && (
@@ -60,8 +60,8 @@ export const HabitItem = ({ habit, onToggle }: HabitItemProps) => {
                         {habit.title}
                     </Text>
                 </View>
-                <View style={styles.pointsPill}>
-                    <Text style={styles.pointsText}>+{habit.pointsValue}</Text>
+                <View style={[styles.pointsPill, habit.isCompleted && styles.pointsPillCompleted]}>
+                    <Text style={[styles.pointsText, habit.isCompleted && styles.pointsTextCompleted]}>+{habit.pointsValue}</Text>
                 </View>
             </Animated.View>
         </Pressable>
@@ -78,11 +78,15 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         marginBottom: 12,
         marginHorizontal: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#F0F0F0',
+        borderLeftWidth: 4,
+        borderLeftColor: '#F0F0F0',
+    },
+    containerCompleted: {
+        backgroundColor: '#F0FAF0',
+        borderColor: '#C5E8C5',
+        borderLeftColor: '#A8D5A2',
     },
     leftContent: {
         flexDirection: 'row',
@@ -101,8 +105,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#FAFAFA',
     },
     checkboxActive: {
-        backgroundColor: '#00A699',
-        borderColor: '#00A699',
+        backgroundColor: '#FF6B6B',
+        borderColor: '#FF6B6B',
     },
     title: {
         fontSize: 16,
@@ -111,18 +115,23 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     titleCompleted: {
-        textDecorationLine: 'line-through',
-        color: '#717171',
+        color: '#4A8C4A',
     },
     pointsPill: {
-        backgroundColor: '#E8F5F4',
+        backgroundColor: '#F0F0F0',
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 12,
     },
+    pointsPillCompleted: {
+        backgroundColor: '#2D2D2D',
+    },
     pointsText: {
-        color: '#00A699',
+        color: '#717171',
         fontWeight: '700',
         fontSize: 14,
+    },
+    pointsTextCompleted: {
+        color: '#FFFFFF',
     },
 });

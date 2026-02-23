@@ -56,14 +56,13 @@ const styles = StyleSheet.create({
     promptContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#F0FAF0',
         borderRadius: 16,
         padding: 16,
         marginHorizontal: 16,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#E8F5F4',
-        borderStyle: 'dashed',
+        borderColor: '#C5E8C5',
     },
     iconCircle: {
         width: 32,
