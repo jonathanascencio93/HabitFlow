@@ -1,98 +1,165 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { StyleSheet, View, Text, ScrollView, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
+import { useHabit } from '@/src/context/HabitContext';
+import { HabitItem } from '@/components/HabitItem';
+import { UserStatsBanner } from '@/components/UserStatsBanner';
+import { HealthConnectBanner } from '@/components/HealthConnectBanner';
+import { auth } from '@/src/config/firebase';
+import { signOut } from 'firebase/auth';
+import { FontAwesome5 } from '@expo/vector-icons';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function DashboardScreen() {
+  const { habits, toggleHabitCompletion } = useHabit();
 
-export default function HomeScreen() {
+  const morningHabits = habits.filter(h => h.category === 'morning');
+  const choreHabits = habits.filter(h => h.category === 'chore');
+  const goodHabits = habits.filter(h => h.category === 'habit');
+  const otherHabits = habits.filter(h => !['morning', 'chore', 'habit'].includes(h.category));
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Logout error:', error);
+      Alert.alert('Error', 'Failed to log out.');
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Today&apos;s Flow</Text>
+            <Text style={styles.subtitle}>Let&apos;s build some momentum</Text>
+          </View>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <FontAwesome5 name="sign-out-alt" size={20} color="#717171" />
+          </TouchableOpacity>
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <UserStatsBanner />
+        <HealthConnectBanner />
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Morning Routine</Text>
+          {morningHabits.length > 0 ? (
+            morningHabits.map(habit => (
+              <HabitItem
+                key={habit.id}
+                habit={habit}
+                onToggle={toggleHabitCompletion}
+              />
+            ))
+          ) : (
+            <Text style={styles.emptyText}>No morning habits set.</Text>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Household Chores</Text>
+          {choreHabits.length > 0 ? (
+            choreHabits.map(habit => (
+              <HabitItem
+                key={habit.id}
+                habit={habit}
+                onToggle={toggleHabitCompletion}
+              />
+            ))
+          ) : (
+            <Text style={styles.emptyText}>No chores added today.</Text>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Good Habits</Text>
+          {goodHabits.length > 0 ? (
+            goodHabits.map(habit => (
+              <HabitItem
+                key={habit.id}
+                habit={habit}
+                onToggle={toggleHabitCompletion}
+              />
+            ))
+          ) : (
+            <Text style={styles.emptyText}>No habits added today.</Text>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Other Activities</Text>
+          {otherHabits.length > 0 ? (
+            otherHabits.map(habit => (
+              <HabitItem
+                key={habit.id}
+                habit={habit}
+                onToggle={toggleHabitCompletion}
+              />
+            ))
+          ) : (
+            <Text style={styles.emptyText}>No other activities planned today.</Text>
+          )}
+        </View>
+
+        {/* Padding for bottom nav */}
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F7F7F7',
   },
-  stepContainer: {
-    gap: 8,
+  container: {
+    flex: 1,
+  },
+  content: {
+    paddingTop: 16,
+  },
+  header: {
+    paddingHorizontal: 24,
     marginBottom: 8,
+    marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  title: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#222222',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#717171',
+    marginTop: 4,
+  },
+  logoutButton: {
+    padding: 8,
+    backgroundColor: '#EBEBEB',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  section: {
+    marginTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222222',
+    marginBottom: 16,
+    paddingHorizontal: 24,
+  },
+  emptyText: {
+    color: '#717171',
+    fontStyle: 'italic',
+    paddingHorizontal: 24,
   },
 });
