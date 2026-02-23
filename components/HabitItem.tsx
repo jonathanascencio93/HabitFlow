@@ -31,10 +31,10 @@ interface HabitItemProps {
     onSkip?: (id: string) => void;
     onTimer?: (id: string) => void;
     onExtendDue?: (id: string, newTime: string) => void;
-    onEditTimes?: (id: string) => void;
+    onEditActivity?: (id: string) => void;
 }
 
-export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExtendDue, onEditTimes }: HabitItemProps) => {
+export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExtendDue, onEditActivity }: HabitItemProps) => {
     const scale = useSharedValue(1);
     const isDone = habit.status === 'done';
     const [expanded, setExpanded] = useState(false);
@@ -106,10 +106,10 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExte
     const swipeableRef = useRef<Swipeable>(null);
 
     const renderLeftActions = () => {
-        if (!onEditTimes) return null;
+        if (!onEditActivity) return null;
         return (
             <View style={styles.swipeLeftAction}>
-                <FontAwesome5 name="clock" size={20} color="#FFFFFF" />
+                <FontAwesome5 name="edit" size={20} color="#FFFFFF" />
                 <Text style={styles.swipeActionText}>Edit</Text>
             </View>
         );
@@ -133,7 +133,7 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExte
                 renderRightActions={renderRightActions}
                 onSwipeableLeftOpen={() => {
                     swipeableRef.current?.close();
-                    if (onEditTimes) onEditTimes(habit.id);
+                    if (onEditActivity) onEditActivity(habit.id);
                 }}
                 onSwipeableRightOpen={() => {
                     swipeableRef.current?.close();
@@ -187,10 +187,10 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExte
                                     <Text style={styles.actionLabel}>Done</Text>
                                 </TouchableOpacity>
 
-                                {onEditTimes ? (
-                                    <TouchableOpacity style={styles.actionButton} onPress={() => { setExpanded(false); onEditTimes(habit.id); }}>
+                                {onEditActivity ? (
+                                    <TouchableOpacity style={styles.actionButton} onPress={() => { setExpanded(false); onEditActivity(habit.id); }}>
                                         <View style={[styles.actionIcon, { backgroundColor: '#F0F5FF' }]}>
-                                            <FontAwesome5 name="clock" size={12} color="#4A90E2" />
+                                            <FontAwesome5 name="edit" size={12} color="#4A90E2" />
                                         </View>
                                         <Text style={styles.actionLabel}>Edit</Text>
                                     </TouchableOpacity>

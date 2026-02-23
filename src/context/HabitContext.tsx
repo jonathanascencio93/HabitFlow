@@ -33,6 +33,8 @@ interface HabitContextType {
     unpostponeHabit: (id: string) => void;
     skipHabit: (id: string) => void;
     updateHabitTimes: (id: string, dueTime?: string, reminderTime?: string) => void;
+    updateHabit: (id: string, updates: Partial<Omit<Habit, 'id'>>) => void;
+    deleteHabit: (id: string) => void;
     resetDailyProgression: () => void;
 }
 
@@ -284,10 +286,36 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
+    const updateHabit = (id: string, updates: Partial<Omit<Habit, 'id'>>) => {
+        let updatedHabit: Habit | null = null;
+        const updatedHabits = habits.map(habit => {
+            if (habit.id === id) {
+                updatedHabit = { ...habit, ...updates };
+                return updatedHabit;
+            }
+            return habit;
+        });
+        saveHabits(updatedHabits);
+
+        if (updatedHabit) {
+            cancelHabitReminder(id).then(() => {
+                if ((updatedHabit as Habit).reminderTime && (updatedHabit as Habit).status === 'pending') {
+                    scheduleHabitReminder(updatedHabit as Habit);
+                }
+            });
+        }
+    };
+
+    const deleteHabit = (id: string) => {
+        const updatedHabits = habits.filter(habit => habit.id !== id);
+        saveHabits(updatedHabits);
+        cancelHabitReminder(id);
+    };
+
     return (
         <HabitContext.Provider value={{
             habits, todaysHabits, activeHabits, completedHabits, postponedHabits, skippedHabits,
-            userStats, addHabit, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, updateHabitTimes, resetDailyProgression,
+            userStats, addHabit, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, updateHabitTimes, updateHabit, deleteHabit, resetDailyProgression,
         }}>
             {children}
         </HabitContext.Provider>
