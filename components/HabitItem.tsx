@@ -180,22 +180,6 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExte
                         {/* Expanded action panel */}
                         {expanded && !isDone && (
                             <View style={styles.actionPanel}>
-                                <TouchableOpacity style={styles.actionButton} onPress={handleCheckbox}>
-                                    <View style={[styles.actionIcon, { backgroundColor: '#F0FAF0' }]}>
-                                        <FontAwesome5 name="check" size={12} color="#4A8C4A" />
-                                    </View>
-                                    <Text style={styles.actionLabel}>Done</Text>
-                                </TouchableOpacity>
-
-                                {onEditActivity ? (
-                                    <TouchableOpacity style={styles.actionButton} onPress={() => { setExpanded(false); onEditActivity(habit.id); }}>
-                                        <View style={[styles.actionIcon, { backgroundColor: '#F0F5FF' }]}>
-                                            <FontAwesome5 name="edit" size={12} color="#4A90E2" />
-                                        </View>
-                                        <Text style={styles.actionLabel}>Edit</Text>
-                                    </TouchableOpacity>
-                                ) : null}
-
                                 {habit.timerMinutes && onTimer ? (
                                     <TouchableOpacity style={styles.actionButton} onPress={() => { setExpanded(false); onTimer(habit.id); }}>
                                         <View style={[styles.actionIcon, { backgroundColor: '#FFF0E8' }]}>
