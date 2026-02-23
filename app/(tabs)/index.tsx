@@ -10,14 +10,14 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
 
 export default function DashboardScreen() {
-  const { habits, toggleHabitCompletion } = useHabit();
+  const { todaysHabits, toggleHabitCompletion } = useHabit();
   const { user } = useAuth();
   const displayName = user?.displayName || 'there';
 
-  const morningHabits = habits.filter(h => h.category === 'morning');
-  const choreHabits = habits.filter(h => h.category === 'chore');
-  const goodHabits = habits.filter(h => h.category === 'habit');
-  const otherHabits = habits.filter(h => !['morning', 'chore', 'habit'].includes(h.category));
+  const morningHabits = todaysHabits.filter(h => h.category === 'morning');
+  const choreHabits = todaysHabits.filter(h => h.category === 'chore');
+  const goodHabits = todaysHabits.filter(h => h.category === 'habit');
+  const otherHabits = todaysHabits.filter(h => !['morning', 'chore', 'habit'].includes(h.category));
 
   const handleLogout = async () => {
     try {

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Habit, UserStats } from '../models/types';
+import { Habit, UserStats, RecurrenceRule } from '../models/types';
 
 // Default habits for the MVP
 const DEFAULT_HABITS: Habit[] = [
@@ -20,6 +20,7 @@ const DEFAULT_STATS: UserStats = {
 
 interface HabitContextType {
     habits: Habit[];
+    todaysHabits: Habit[];
     userStats: UserStats;
     addHabit: (habit: Omit<Habit, 'id' | 'isCompleted'>) => void;
     toggleHabitCompletion: (id: string) => void;
@@ -32,6 +33,37 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
     const [habits, setHabits] = useState<Habit[]>([]);
     const [userStats, setUserStats] = useState<UserStats>(DEFAULT_STATS);
     const [isLoaded, setIsLoaded] = useState(false);
+
+    // Scheduling helper: determines if a habit is due today
+    const isDueToday = (habit: Habit): boolean => {
+        const rule = habit.recurrence;
+        if (!rule || rule.type === 'daily') return true;
+
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0=Sun...6=Sat
+        const dateOfMonth = today.getDate();
+
+        switch (rule.type) {
+            case 'specific_days':
+                return rule.daysOfWeek?.includes(dayOfWeek) ?? true;
+            case 'every_other_day': {
+                const start = new Date(rule.startDate);
+                const diffTime = today.getTime() - start.getTime();
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays % 2 === 0;
+            }
+            case 'weekly': {
+                const startDay = new Date(rule.startDate).getDay();
+                return dayOfWeek === startDay;
+            }
+            case 'monthly':
+                return dateOfMonth === (rule.dayOfMonth ?? 1);
+            default:
+                return true;
+        }
+    };
+
+    const todaysHabits = habits.filter(isDueToday);
 
     useEffect(() => {
         const loadData = async () => {
@@ -134,7 +166,7 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
     };
 
     return (
-        <HabitContext.Provider value={{ habits, userStats, addHabit, toggleHabitCompletion, resetDailyProgression }}>
+        <HabitContext.Provider value={{ habits, todaysHabits, userStats, addHabit, toggleHabitCompletion, resetDailyProgression }}>
             {children}
         </HabitContext.Provider>
     );

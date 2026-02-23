@@ -1,9 +1,20 @@
+export type RecurrenceType = 'daily' | 'specific_days' | 'every_other_day' | 'weekly' | 'monthly';
+
+export interface RecurrenceRule {
+  type: RecurrenceType;
+  daysOfWeek?: number[];    // 0=Sun, 1=Mon...6=Sat (for 'specific_days')
+  dayOfMonth?: number;      // 1-31 (for 'monthly')
+  startDate: string;        // ISO date string — anchor for 'every_other_day' and 'weekly'
+}
+
 export interface Habit {
   id: string;
   title: string;
   category: 'morning' | 'work' | 'health' | 'chore' | 'habit';
   isCompleted: boolean;
   pointsValue: number;
+  recurrence?: RecurrenceRule;  // undefined = daily (backward compatible)
+  timerMinutes?: number;        // optional timer duration (future feature)
 }
 
 export interface UserStats {
