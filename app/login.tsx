@@ -1,12 +1,13 @@
 import { auth } from '@/src/config/firebase';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
+    const [firstName, setFirstName] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +40,7 @@ export default function LoginScreen() {
     // Form completeness validation
     const isFormValid = isLogin
         ? (email.length > 0 && isValidEmail(email) && password.length > 0)
-        : (email.length > 0 && isValidEmail(email) && isPasswordValid && password === confirmPassword);
+        : (firstName.trim().length > 0 && email.length > 0 && isValidEmail(email) && isPasswordValid && password === confirmPassword);
 
     const handleAuth = async () => {
         if (!email || !password) {
@@ -63,8 +64,9 @@ export default function LoginScreen() {
             if (isLogin) {
                 await signInWithEmailAndPassword(auth, email, password);
             } else {
-                await createUserWithEmailAndPassword(auth, email, password);
-                Alert.alert('Success!', 'Your account has been created.');
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await updateProfile(userCredential.user, { displayName: firstName.trim() });
+                Alert.alert('Welcome, ' + firstName.trim() + '!', 'Your account has been created.');
             }
         } catch (error: any) {
             console.error('Authentication Error:', error);
@@ -83,7 +85,7 @@ export default function LoginScreen() {
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-            <View style={styles.content}>
+            <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
                 {/* Logo & Welcome */}
                 <View style={styles.iconContainer}>
@@ -98,8 +100,23 @@ export default function LoginScreen() {
 
                 {/* Input Fields */}
                 <View style={styles.inputContainer}>
+                    {/* First Name (signup only) */}
+                    {!isLogin && (
+                        <>
+                            <Text style={styles.label}>First Name</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="What should we call you?"
+                                value={firstName}
+                                onChangeText={setFirstName}
+                                autoCapitalize="words"
+                                editable={!isLoading}
+                            />
+                        </>
+                    )}
+
                     {/* Email */}
-                    <Text style={styles.label}>Email Address</Text>
+                    <Text style={[styles.label, { marginTop: !isLogin ? 12 : 0 }]}>Email Address</Text>
                     <View style={styles.inputWrapper}>
                         <TextInput
                             style={[styles.input, showEmailError && styles.inputError]}
@@ -202,7 +219,7 @@ export default function LoginScreen() {
                         {isLogin ? 'New to HabitFlow? Sign Up' : 'Already have an account? Sign In'}
                     </Text>
                 </TouchableOpacity>
-            </View>
+            </ScrollView>
         </KeyboardAvoidingView>
     );
 }
@@ -213,9 +230,10 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFF5EE',
     },
     content: {
-        flex: 1,
+        flexGrow: 1,
         justifyContent: 'center',
         paddingHorizontal: 24,
+        paddingVertical: 32,
     },
     iconContainer: {
         alignItems: 'center',

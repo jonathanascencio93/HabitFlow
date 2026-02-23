@@ -7,9 +7,12 @@ import { HealthConnectBanner } from '@/components/HealthConnectBanner';
 import { auth } from '@/src/config/firebase';
 import { signOut } from 'firebase/auth';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { useAuth } from '@/src/context/AuthContext';
 
 export default function DashboardScreen() {
   const { habits, toggleHabitCompletion } = useHabit();
+  const { user } = useAuth();
+  const displayName = user?.displayName || 'there';
 
   const morningHabits = habits.filter(h => h.category === 'morning');
   const choreHabits = habits.filter(h => h.category === 'chore');
@@ -31,7 +34,7 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Today&apos;s Flow</Text>
-            <Text style={styles.subtitle}>Let&apos;s build some momentum</Text>
+            <Text style={styles.subtitle}>Let&apos;s go, {displayName} 💪</Text>
           </View>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <FontAwesome5 name="sign-out-alt" size={20} color="#717171" />
