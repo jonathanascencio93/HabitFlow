@@ -21,12 +21,14 @@ const DEFAULT_STATS: UserStats = {
 interface HabitContextType {
     habits: Habit[];
     todaysHabits: Habit[];
-    activeHabits: Habit[];   // due today + pending
-    completedHabits: Habit[]; // due today + done
+    activeHabits: Habit[];
+    completedHabits: Habit[];
+    postponedHabits: Habit[];
     userStats: UserStats;
     addHabit: (habit: Omit<Habit, 'id' | 'status'>) => void;
     toggleHabitCompletion: (id: string) => void;
-    postponeHabit: (id: string) => void;
+    postponeHabit: (id: string, targetDate: string) => void;
+    unpostponeHabit: (id: string) => void;
     resetDailyProgression: () => void;
 }
 
@@ -50,11 +52,22 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
 
     // Scheduling helper: determines if a habit is due today
     const isDueToday = (habit: Habit): boolean => {
-        if (habit.status === 'postponed') return false; // postponed habits never show today
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+
+        // Handle postponed habits: only show on or after the target date
+        if (habit.status === 'postponed' && habit.postponedUntil) {
+            if (todayStr < habit.postponedUntil) return false;
+            // Target date reached — reset to pending
+            habit.status = 'pending';
+            habit.postponedUntil = undefined;
+        } else if (habit.status === 'postponed') {
+            return false;
+        }
+
         const rule = habit.recurrence;
         if (!rule || rule.type === 'daily') return true;
 
-        const today = new Date();
         const dayOfWeek = today.getDay();
         const dateOfMonth = today.getDate();
 
@@ -81,6 +94,7 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
     const todaysHabits = habits.filter(isDueToday);
     const activeHabits = todaysHabits.filter(h => h.status === 'pending');
     const completedHabits = todaysHabits.filter(h => h.status === 'done');
+    const postponedHabits = habits.filter(h => h.status === 'postponed');
 
     useEffect(() => {
         const loadData = async () => {
@@ -180,10 +194,20 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    const postponeHabit = (id: string) => {
+    const postponeHabit = (id: string, targetDate: string) => {
         const updatedHabits = habits.map(habit => {
             if (habit.id === id) {
-                return { ...habit, status: 'postponed' } as Habit;
+                return { ...habit, status: 'postponed' as const, postponedUntil: targetDate };
+            }
+            return habit;
+        });
+        saveHabits(updatedHabits);
+    };
+
+    const unpostponeHabit = (id: string) => {
+        const updatedHabits = habits.map(habit => {
+            if (habit.id === id) {
+                return { ...habit, status: 'pending' as const, postponedUntil: undefined };
             }
             return habit;
         });
@@ -197,8 +221,8 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
 
     return (
         <HabitContext.Provider value={{
-            habits, todaysHabits, activeHabits, completedHabits,
-            userStats, addHabit, toggleHabitCompletion, postponeHabit, resetDailyProgression,
+            habits, todaysHabits, activeHabits, completedHabits, postponedHabits,
+            userStats, addHabit, toggleHabitCompletion, postponeHabit, unpostponeHabit, resetDailyProgression,
         }}>
             {children}
         </HabitContext.Provider>

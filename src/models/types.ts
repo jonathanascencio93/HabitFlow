@@ -15,8 +15,9 @@ export interface Habit {
   category: 'morning' | 'work' | 'health' | 'chore' | 'habit';
   status: HabitStatus;
   pointsValue: number;
-  recurrence?: RecurrenceRule;  // undefined = daily (backward compatible)
-  timerMinutes?: number;        // optional timer duration (future feature)
+  recurrence?: RecurrenceRule;
+  timerMinutes?: number;
+  postponedUntil?: string;   // ISO date string — habit reappears on this date
 }
 
 export interface UserStats {
