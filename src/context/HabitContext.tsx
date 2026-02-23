@@ -4,30 +4,44 @@ import { Habit, UserStats, RecurrenceRule } from '../models/types';
 
 // Default habits for the MVP
 const DEFAULT_HABITS: Habit[] = [
-    { id: '1', title: 'Breathing Exercises', category: 'morning', isCompleted: false, pointsValue: 10 },
-    { id: '2', title: 'Drink Water', category: 'morning', isCompleted: false, pointsValue: 5 },
-    { id: '3', title: 'Stretching', category: 'morning', isCompleted: false, pointsValue: 15 },
-    { id: '4', title: 'Cold Shower', category: 'morning', isCompleted: false, pointsValue: 20 },
-    { id: '5', title: 'Healthy Breakfast', category: 'morning', isCompleted: false, pointsValue: 10 },
+    { id: '1', title: 'Breathing Exercises', category: 'morning', status: 'pending', pointsValue: 10 },
+    { id: '2', title: 'Drink Water', category: 'morning', status: 'pending', pointsValue: 5 },
+    { id: '3', title: 'Stretching', category: 'morning', status: 'pending', pointsValue: 15 },
+    { id: '4', title: 'Cold Shower', category: 'morning', status: 'pending', pointsValue: 20 },
+    { id: '5', title: 'Healthy Breakfast', category: 'morning', status: 'pending', pointsValue: 10 },
 ];
 
 const DEFAULT_STATS: UserStats = {
     currentStreak: 0,
     longestStreak: 0,
     totalPoints: 0,
-    lastLoginDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+    lastLoginDate: new Date().toISOString().split('T')[0],
 };
 
 interface HabitContextType {
     habits: Habit[];
     todaysHabits: Habit[];
+    activeHabits: Habit[];   // due today + pending
+    completedHabits: Habit[]; // due today + done
     userStats: UserStats;
-    addHabit: (habit: Omit<Habit, 'id' | 'isCompleted'>) => void;
+    addHabit: (habit: Omit<Habit, 'id' | 'status'>) => void;
     toggleHabitCompletion: (id: string) => void;
+    postponeHabit: (id: string) => void;
     resetDailyProgression: () => void;
 }
 
 const HabitContext = createContext<HabitContextType | undefined>(undefined);
+
+// Migrate old data: convert isCompleted boolean -> status string
+const migrateHabits = (habits: any[]): Habit[] => {
+    return habits.map(h => {
+        if ('isCompleted' in h && !('status' in h)) {
+            const { isCompleted, ...rest } = h;
+            return { ...rest, status: isCompleted ? 'done' : 'pending' } as Habit;
+        }
+        return h as Habit;
+    });
+};
 
 export const HabitProvider = ({ children }: { children: ReactNode }) => {
     const [habits, setHabits] = useState<Habit[]>([]);
@@ -36,11 +50,12 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
 
     // Scheduling helper: determines if a habit is due today
     const isDueToday = (habit: Habit): boolean => {
+        if (habit.status === 'postponed') return false; // postponed habits never show today
         const rule = habit.recurrence;
         if (!rule || rule.type === 'daily') return true;
 
         const today = new Date();
-        const dayOfWeek = today.getDay(); // 0=Sun...6=Sat
+        const dayOfWeek = today.getDay();
         const dateOfMonth = today.getDate();
 
         switch (rule.type) {
@@ -64,6 +79,8 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const todaysHabits = habits.filter(isDueToday);
+    const activeHabits = todaysHabits.filter(h => h.status === 'pending');
+    const completedHabits = todaysHabits.filter(h => h.status === 'done');
 
     useEffect(() => {
         const loadData = async () => {
@@ -71,8 +88,12 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
                 const storedHabits = await AsyncStorage.getItem('@habits');
                 const storedStats = await AsyncStorage.getItem('@userStats');
 
-                if (storedHabits) setHabits(JSON.parse(storedHabits));
-                else setHabits(DEFAULT_HABITS);
+                if (storedHabits) {
+                    const parsed = JSON.parse(storedHabits);
+                    setHabits(migrateHabits(parsed));
+                } else {
+                    setHabits(DEFAULT_HABITS);
+                }
 
                 if (storedStats) setUserStats(JSON.parse(storedStats));
 
@@ -99,13 +120,11 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
                 let newStats = { ...userStats, lastLoginDate: today };
 
                 if (daysDiff === 1) {
-                    // Maintained streak
                     newStats.currentStreak += 1;
                     if (newStats.currentStreak > newStats.longestStreak) {
                         newStats.longestStreak = newStats.currentStreak;
                     }
                 } else if (daysDiff > 1) {
-                    // Broke streak
                     newStats.currentStreak = 0;
                 }
 
@@ -129,11 +148,11 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
         await AsyncStorage.setItem('@userStats', JSON.stringify(newStats));
     };
 
-    const addHabit = (habitData: Omit<Habit, 'id' | 'isCompleted'>) => {
+    const addHabit = (habitData: Omit<Habit, 'id' | 'status'>) => {
         const newHabit: Habit = {
             ...habitData,
             id: Date.now().toString(),
-            isCompleted: false,
+            status: 'pending',
         };
         saveHabits([...habits, newHabit]);
     };
@@ -142,10 +161,11 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
         let pointsToAdd = 0;
         const updatedHabits = habits.map(habit => {
             if (habit.id === id) {
-                if (!habit.isCompleted) pointsToAdd = habit.pointsValue;
-                else pointsToAdd = -habit.pointsValue; // Subtract points if unchecking
+                const newStatus = habit.status === 'done' ? 'pending' : 'done';
+                if (newStatus === 'done') pointsToAdd = habit.pointsValue;
+                else pointsToAdd = -habit.pointsValue;
 
-                return { ...habit, isCompleted: !habit.isCompleted };
+                return { ...habit, status: newStatus } as Habit;
             }
             return habit;
         });
@@ -160,13 +180,26 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
+    const postponeHabit = (id: string) => {
+        const updatedHabits = habits.map(habit => {
+            if (habit.id === id) {
+                return { ...habit, status: 'postponed' } as Habit;
+            }
+            return habit;
+        });
+        saveHabits(updatedHabits);
+    };
+
     const resetDailyProgression = () => {
-        const resetHabits = habits.map(h => ({ ...h, isCompleted: false }));
+        const resetHabits = habits.map(h => ({ ...h, status: 'pending' as const }));
         saveHabits(resetHabits);
     };
 
     return (
-        <HabitContext.Provider value={{ habits, todaysHabits, userStats, addHabit, toggleHabitCompletion, resetDailyProgression }}>
+        <HabitContext.Provider value={{
+            habits, todaysHabits, activeHabits, completedHabits,
+            userStats, addHabit, toggleHabitCompletion, postponeHabit, resetDailyProgression,
+        }}>
             {children}
         </HabitContext.Provider>
     );

@@ -7,11 +7,13 @@ export interface RecurrenceRule {
   startDate: string;        // ISO date string — anchor for 'every_other_day' and 'weekly'
 }
 
+export type HabitStatus = 'pending' | 'done' | 'postponed';
+
 export interface Habit {
   id: string;
   title: string;
   category: 'morning' | 'work' | 'health' | 'chore' | 'habit';
-  isCompleted: boolean;
+  status: HabitStatus;
   pointsValue: number;
   recurrence?: RecurrenceRule;  // undefined = daily (backward compatible)
   timerMinutes?: number;        // optional timer duration (future feature)

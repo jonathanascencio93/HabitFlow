@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingVertical: 14,
         marginBottom: 32,
         borderWidth: 1,
         borderColor: '#F0F0F0',
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 18,
         color: '#222222',
-        height: 36,
+        paddingVertical: 0,
     },
     micButton: {
         padding: 8,

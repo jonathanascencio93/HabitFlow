@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import { useHabit } from '@/src/context/HabitContext';
 import { HabitItem } from '@/components/HabitItem';
@@ -10,14 +10,15 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
 
 export default function DashboardScreen() {
-  const { todaysHabits, toggleHabitCompletion } = useHabit();
+  const { activeHabits, completedHabits, toggleHabitCompletion, postponeHabit } = useHabit();
   const { user } = useAuth();
   const displayName = user?.displayName || 'there';
+  const [showCompleted, setShowCompleted] = useState(true);
 
-  const morningHabits = todaysHabits.filter(h => h.category === 'morning');
-  const choreHabits = todaysHabits.filter(h => h.category === 'chore');
-  const goodHabits = todaysHabits.filter(h => h.category === 'habit');
-  const otherHabits = todaysHabits.filter(h => !['morning', 'chore', 'habit'].includes(h.category));
+  const morningActive = activeHabits.filter(h => h.category === 'morning');
+  const choreActive = activeHabits.filter(h => h.category === 'chore');
+  const habitActive = activeHabits.filter(h => h.category === 'habit');
+  const otherActive = activeHabits.filter(h => !['morning', 'chore', 'habit'].includes(h.category));
 
   const handleLogout = async () => {
     try {
@@ -26,6 +27,23 @@ export default function DashboardScreen() {
       console.error('Logout error:', error);
       Alert.alert('Error', 'Failed to log out.');
     }
+  };
+
+  const renderSection = (title: string, items: typeof activeHabits) => {
+    if (items.length === 0) return null;
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {items.map(habit => (
+          <HabitItem
+            key={habit.id}
+            habit={habit}
+            onToggle={toggleHabitCompletion}
+            onPostpone={postponeHabit}
+          />
+        ))}
+      </View>
+    );
   };
 
   return (
@@ -44,67 +62,46 @@ export default function DashboardScreen() {
         <UserStatsBanner />
         <HealthConnectBanner />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Morning Routine</Text>
-          {morningHabits.length > 0 ? (
-            morningHabits.map(habit => (
+        {/* Active Habits — grouped by category */}
+        {renderSection('Morning Routine', morningActive)}
+        {renderSection('Household Chores', choreActive)}
+        {renderSection('Good Habits', habitActive)}
+        {renderSection('Other Activities', otherActive)}
+
+        {/* Empty state when all habits are done */}
+        {activeHabits.length === 0 && completedHabits.length > 0 && (
+          <View style={styles.allDoneContainer}>
+            <Text style={styles.allDoneEmoji}>🎉</Text>
+            <Text style={styles.allDoneText}>All done for today!</Text>
+          </View>
+        )}
+
+        {/* Completed Today section */}
+        {completedHabits.length > 0 && (
+          <View style={styles.completedSection}>
+            <TouchableOpacity
+              style={styles.completedHeader}
+              onPress={() => setShowCompleted(!showCompleted)}
+            >
+              <Text style={styles.completedTitle}>
+                Completed Today ({completedHabits.length})
+              </Text>
+              <FontAwesome5
+                name={showCompleted ? 'chevron-up' : 'chevron-down'}
+                size={12}
+                color="#717171"
+              />
+            </TouchableOpacity>
+            {showCompleted && completedHabits.map(habit => (
               <HabitItem
                 key={habit.id}
                 habit={habit}
                 onToggle={toggleHabitCompletion}
               />
-            ))
-          ) : (
-            <Text style={styles.emptyText}>No morning habits set.</Text>
-          )}
-        </View>
+            ))}
+          </View>
+        )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Household Chores</Text>
-          {choreHabits.length > 0 ? (
-            choreHabits.map(habit => (
-              <HabitItem
-                key={habit.id}
-                habit={habit}
-                onToggle={toggleHabitCompletion}
-              />
-            ))
-          ) : (
-            <Text style={styles.emptyText}>No chores added today.</Text>
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Good Habits</Text>
-          {goodHabits.length > 0 ? (
-            goodHabits.map(habit => (
-              <HabitItem
-                key={habit.id}
-                habit={habit}
-                onToggle={toggleHabitCompletion}
-              />
-            ))
-          ) : (
-            <Text style={styles.emptyText}>No habits added today.</Text>
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Other Activities</Text>
-          {otherHabits.length > 0 ? (
-            otherHabits.map(habit => (
-              <HabitItem
-                key={habit.id}
-                habit={habit}
-                onToggle={toggleHabitCompletion}
-              />
-            ))
-          ) : (
-            <Text style={styles.emptyText}>No other activities planned today.</Text>
-          )}
-        </View>
-
-        {/* Padding for bottom nav */}
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
@@ -160,9 +157,35 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 24,
   },
-  emptyText: {
-    color: '#717171',
-    fontStyle: 'italic',
+  allDoneContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  allDoneEmoji: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  allDoneText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#4A8C4A',
+  },
+  completedSection: {
+    marginTop: 32,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#EBEBEB',
+  },
+  completedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  completedTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#717171',
   },
 });

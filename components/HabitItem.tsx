@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TouchableOpacity } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import Animated, {
     useSharedValue,
@@ -14,31 +14,25 @@ import * as Haptics from 'expo-haptics';
 interface HabitItemProps {
     habit: Habit;
     onToggle: (id: string) => void;
+    onPostpone?: (id: string) => void;
 }
 
-export const HabitItem = ({ habit, onToggle }: HabitItemProps) => {
+export const HabitItem = ({ habit, onToggle, onPostpone }: HabitItemProps) => {
     const scale = useSharedValue(1);
-    const opacity = useSharedValue(habit.isCompleted ? 0.6 : 1);
-
-    useEffect(() => {
-        opacity.value = withTiming(habit.isCompleted ? 0.6 : 1, { duration: 300 });
-    }, [habit.isCompleted, opacity]);
+    const isDone = habit.status === 'done';
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
-        opacity: opacity.value,
     }));
 
     const handlePress = () => {
-        // Micro-animation for the click
         scale.value = withSequence(
             withSpring(0.95),
             withSpring(1.05),
             withSpring(1)
         );
 
-        // Haptic feedback to make it feel tangible/rewarding
-        if (!habit.isCompleted) {
+        if (!isDone) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } else {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -47,21 +41,33 @@ export const HabitItem = ({ habit, onToggle }: HabitItemProps) => {
         onToggle(habit.id);
     };
 
+    const handlePostpone = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        onPostpone?.(habit.id);
+    };
+
     return (
         <Pressable onPress={handlePress}>
-            <Animated.View style={[styles.container, habit.isCompleted && styles.containerCompleted, animatedStyle]}>
+            <Animated.View style={[styles.container, isDone && styles.containerCompleted, animatedStyle]}>
                 <View style={styles.leftContent}>
-                    <View style={[styles.checkbox, habit.isCompleted && styles.checkboxActive]}>
-                        {habit.isCompleted && (
+                    <View style={[styles.checkbox, isDone && styles.checkboxActive]}>
+                        {isDone && (
                             <FontAwesome5 name="check" size={14} color="#FFFFFF" />
                         )}
                     </View>
-                    <Text style={[styles.title, habit.isCompleted && styles.titleCompleted]}>
+                    <Text style={[styles.title, isDone && styles.titleCompleted]}>
                         {habit.title}
                     </Text>
                 </View>
-                <View style={[styles.pointsPill, habit.isCompleted && styles.pointsPillCompleted]}>
-                    <Text style={[styles.pointsText, habit.isCompleted && styles.pointsTextCompleted]}>+{habit.pointsValue}</Text>
+                <View style={styles.rightContent}>
+                    {!isDone && onPostpone && (
+                        <TouchableOpacity style={styles.postponeButton} onPress={handlePostpone}>
+                            <FontAwesome5 name="calendar-plus" size={14} color="#717171" />
+                        </TouchableOpacity>
+                    )}
+                    <View style={[styles.pointsPill, isDone && styles.pointsPillCompleted]}>
+                        <Text style={[styles.pointsText, isDone && styles.pointsTextCompleted]}>+{habit.pointsValue}</Text>
+                    </View>
                 </View>
             </Animated.View>
         </Pressable>
@@ -93,6 +99,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flex: 1,
     },
+    rightContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
     checkbox: {
         width: 28,
         height: 28,
@@ -116,6 +127,14 @@ const styles = StyleSheet.create({
     },
     titleCompleted: {
         color: '#4A8C4A',
+    },
+    postponeButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#F0F0F0',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     pointsPill: {
         backgroundColor: '#F0F0F0',
