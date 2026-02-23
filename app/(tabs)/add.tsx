@@ -267,25 +267,46 @@ export default function AddHabitScreen() {
                                 thumbColor="#FFFFFF"
                             />
                         </View>
-                        {hasDueTime && (
-                            <TouchableOpacity style={styles.timePicker} onPress={() => setShowDuePicker(true)}>
-                                <Text style={styles.timePickerText}>
-                                    {dueTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </Text>
-                                <FontAwesome5 name="chevron-right" size={12} color="#999" />
-                            </TouchableOpacity>
-                        )}
-                        {showDuePicker && (
-                            <DateTimePicker
-                                value={dueTime}
-                                mode="time"
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(e: DateTimePickerEvent, d?: Date) => {
-                                    setShowDuePicker(Platform.OS === 'ios');
-                                    if (d) { setDueTime(d); if (hasReminder) { const r = new Date(d); r.setMinutes(r.getMinutes() - 15); setReminderTime(r); } }
-                                }}
-                            />
-                        )}
+                        {hasDueTime && Platform.OS === 'web' ? (
+                            <div style={{ marginTop: 8, padding: 14, backgroundColor: '#F7F7F7', borderRadius: 12, border: '1px solid #EBEBEB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <input
+                                    type="time"
+                                    value={`${dueTime.getHours().toString().padStart(2, '0')}:${dueTime.getMinutes().toString().padStart(2, '0')}`}
+                                    onChange={(e) => {
+                                        const [h, m] = e.target.value.split(':').map(Number);
+                                        const newDate = new Date(dueTime);
+                                        newDate.setHours(h, m);
+                                        setDueTime(newDate);
+                                        if (hasReminder) {
+                                            const r = new Date(newDate);
+                                            r.setMinutes(r.getMinutes() - 15);
+                                            setReminderTime(r);
+                                        }
+                                    }}
+                                    style={{ fontSize: 18, fontWeight: '600', color: '#222', border: 'none', backgroundColor: 'transparent', outline: 'none', width: '100%' }}
+                                />
+                            </div>
+                        ) : hasDueTime ? (
+                            <>
+                                <TouchableOpacity style={styles.timePicker} onPress={() => setShowDuePicker(true)}>
+                                    <Text style={styles.timePickerText}>
+                                        {dueTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </Text>
+                                    <FontAwesome5 name="chevron-right" size={12} color="#999" />
+                                </TouchableOpacity>
+                                {showDuePicker && (
+                                    <DateTimePicker
+                                        value={dueTime}
+                                        mode="time"
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        onChange={(e: DateTimePickerEvent, d?: Date) => {
+                                            setShowDuePicker(Platform.OS === 'ios');
+                                            if (d) { setDueTime(d); if (hasReminder) { const r = new Date(d); r.setMinutes(r.getMinutes() - 15); setReminderTime(r); } }
+                                        }}
+                                    />
+                                )}
+                            </>
+                        ) : null}
 
                         {/* Reminder */}
                         <View style={styles.toggleRow}>
@@ -300,25 +321,41 @@ export default function AddHabitScreen() {
                                 thumbColor="#FFFFFF"
                             />
                         </View>
-                        {hasReminder && (
-                            <TouchableOpacity style={styles.timePicker} onPress={() => setShowReminderPicker(true)}>
-                                <Text style={styles.timePickerText}>
-                                    {reminderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </Text>
-                                <FontAwesome5 name="chevron-right" size={12} color="#999" />
-                            </TouchableOpacity>
-                        )}
-                        {showReminderPicker && (
-                            <DateTimePicker
-                                value={reminderTime}
-                                mode="time"
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={(e: DateTimePickerEvent, d?: Date) => {
-                                    setShowReminderPicker(Platform.OS === 'ios');
-                                    if (d) setReminderTime(d);
-                                }}
-                            />
-                        )}
+                        {hasReminder && Platform.OS === 'web' ? (
+                            <div style={{ marginTop: 8, padding: 14, backgroundColor: '#F7F7F7', borderRadius: 12, border: '1px solid #EBEBEB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <input
+                                    type="time"
+                                    value={`${reminderTime.getHours().toString().padStart(2, '0')}:${reminderTime.getMinutes().toString().padStart(2, '0')}`}
+                                    onChange={(e) => {
+                                        const [h, m] = e.target.value.split(':').map(Number);
+                                        const newDate = new Date(reminderTime);
+                                        newDate.setHours(h, m);
+                                        setReminderTime(newDate);
+                                    }}
+                                    style={{ fontSize: 18, fontWeight: '600', color: '#222', border: 'none', backgroundColor: 'transparent', outline: 'none', width: '100%' }}
+                                />
+                            </div>
+                        ) : hasReminder ? (
+                            <>
+                                <TouchableOpacity style={styles.timePicker} onPress={() => setShowReminderPicker(true)}>
+                                    <Text style={styles.timePickerText}>
+                                        {reminderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </Text>
+                                    <FontAwesome5 name="chevron-right" size={12} color="#999" />
+                                </TouchableOpacity>
+                                {showReminderPicker && (
+                                    <DateTimePicker
+                                        value={reminderTime}
+                                        mode="time"
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        onChange={(e: DateTimePickerEvent, d?: Date) => {
+                                            setShowReminderPicker(Platform.OS === 'ios');
+                                            if (d) setReminderTime(d);
+                                        }}
+                                    />
+                                )}
+                            </>
+                        ) : null}
                     </View>
 
                     <TouchableOpacity
