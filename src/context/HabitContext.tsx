@@ -32,7 +32,7 @@ interface HabitContextType {
     postponeHabit: (id: string, targetDate: string) => void;
     unpostponeHabit: (id: string) => void;
     skipHabit: (id: string) => void;
-    updateHabitDueTime: (id: string, newDueTime: string) => void;
+    updateHabitTimes: (id: string, dueTime?: string, reminderTime?: string) => void;
     resetDailyProgression: () => void;
 }
 
@@ -263,20 +263,31 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
         saveHabits(resetHabits);
     };
 
-    const updateHabitDueTime = (id: string, newDueTime: string) => {
+    const updateHabitTimes = (id: string, newDueTime?: string, newReminderTime?: string) => {
+        let updatedHabit: Habit | null = null;
         const updatedHabits = habits.map(habit => {
             if (habit.id === id) {
-                return { ...habit, dueTime: newDueTime };
+                updatedHabit = { ...habit, dueTime: newDueTime, reminderTime: newReminderTime };
+                return updatedHabit;
             }
             return habit;
         });
         saveHabits(updatedHabits);
+
+        // Handle notification rescheduling
+        if (updatedHabit) {
+            cancelHabitReminder(id).then(() => {
+                if ((updatedHabit as Habit).reminderTime && (updatedHabit as Habit).status === 'pending') {
+                    scheduleHabitReminder(updatedHabit as Habit);
+                }
+            });
+        }
     };
 
     return (
         <HabitContext.Provider value={{
             habits, todaysHabits, activeHabits, completedHabits, postponedHabits, skippedHabits,
-            userStats, addHabit, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, updateHabitDueTime, resetDailyProgression,
+            userStats, addHabit, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, updateHabitTimes, resetDailyProgression,
         }}>
             {children}
         </HabitContext.Provider>

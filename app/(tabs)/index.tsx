@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, ScrollView, SafeAreaView, TouchableOpacity, Ale
 import { useHabit } from '@/src/context/HabitContext';
 import { HabitItem } from '@/components/HabitItem';
 import { TimerModal } from '@/components/TimerModal';
+import { EditTimesModal } from '@/components/EditTimesModal';
 import { UserStatsBanner } from '@/components/UserStatsBanner';
 import { HealthConnectBanner } from '@/components/HealthConnectBanner';
 import { auth } from '@/src/config/firebase';
@@ -27,7 +28,7 @@ const addDays = (days: number): Date => {
 const toISODate = (d: Date) => d.toISOString().split('T')[0];
 
 export default function DashboardScreen() {
-  const { activeHabits, completedHabits, postponedHabits, skippedHabits, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, updateHabitDueTime } = useHabit();
+  const { activeHabits, completedHabits, postponedHabits, skippedHabits, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, updateHabitTimes } = useHabit();
   const { user } = useAuth();
   const displayName = user?.displayName || 'there';
   const [showCompleted, setShowCompleted] = useState(true);
@@ -38,6 +39,9 @@ export default function DashboardScreen() {
   const [pickerDate, setPickerDate] = useState(addDays(1));
   const [timerModal, setTimerModal] = useState<{ visible: boolean; habitId: string; habitTitle: string; duration: number }>({
     visible: false, habitId: '', habitTitle: '', duration: 0,
+  });
+  const [editTimesModal, setEditTimesModal] = useState<{ visible: boolean; habitId: string; habitTitle: string; dueTime?: string; reminderTime?: string }>({
+    visible: false, habitId: '', habitTitle: '',
   });
 
   const morningActive = activeHabits.filter(h => h.category === 'morning');
@@ -78,6 +82,24 @@ export default function DashboardScreen() {
     toggleHabitCompletion(timerModal.habitId);
   };
 
+  const handleEditTimesOpen = (id: string) => {
+    const habit = [...activeHabits, ...postponedHabits].find(h => h.id === id);
+    if (habit) {
+      setEditTimesModal({
+        visible: true,
+        habitId: habit.id,
+        habitTitle: habit.title,
+        dueTime: habit.dueTime,
+        reminderTime: habit.reminderTime,
+      });
+    }
+  };
+
+  const handleEditTimesSave = (id: string, dueTime?: string, reminderTime?: string) => {
+    updateHabitTimes(id, dueTime, reminderTime);
+    setEditTimesModal(prev => ({ ...prev, visible: false }));
+  };
+
   const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
@@ -108,7 +130,8 @@ export default function DashboardScreen() {
             onPostpone={handlePostponeRequest}
             onSkip={skipHabit}
             onTimer={handleTimerOpen}
-            onExtendDue={updateHabitDueTime}
+            onExtendDue={(id, newTime) => updateHabitTimes(id, newTime)}
+            onEditTimes={handleEditTimesOpen}
           />
         ))}
       </View>
@@ -297,7 +320,6 @@ export default function DashboardScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Timer Modal */}
       <TimerModal
         visible={timerModal.visible}
         habitTitle={timerModal.habitTitle}
@@ -305,6 +327,18 @@ export default function DashboardScreen() {
         onComplete={handleTimerComplete}
         onClose={() => setTimerModal({ ...timerModal, visible: false })}
       />
+
+      {editTimesModal.visible && (
+        <EditTimesModal
+          visible={editTimesModal.visible}
+          habitId={editTimesModal.habitId}
+          habitTitle={editTimesModal.habitTitle}
+          initialDueTime={editTimesModal.dueTime}
+          initialReminderTime={editTimesModal.reminderTime}
+          onClose={() => setEditTimesModal(prev => ({ ...prev, visible: false }))}
+          onSave={handleEditTimesSave}
+        />
+      )}
     </SafeAreaView>
   );
 }

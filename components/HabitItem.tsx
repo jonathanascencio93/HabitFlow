@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { FontAwesome5 } from '@expo/vector-icons';
 import Animated, {
     useSharedValue,
@@ -30,9 +31,10 @@ interface HabitItemProps {
     onSkip?: (id: string) => void;
     onTimer?: (id: string) => void;
     onExtendDue?: (id: string, newTime: string) => void;
+    onEditTimes?: (id: string) => void;
 }
 
-export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExtendDue }: HabitItemProps) => {
+export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExtendDue, onEditTimes }: HabitItemProps) => {
     const scale = useSharedValue(1);
     const isDone = habit.status === 'done';
     const [expanded, setExpanded] = useState(false);
@@ -101,101 +103,151 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExte
         setExpanded(false);
     };
 
+    const swipeableRef = useRef<Swipeable>(null);
+
+    const renderLeftActions = () => {
+        if (!onEditTimes) return null;
+        return (
+            <View style={styles.swipeLeftAction}>
+                <FontAwesome5 name="clock" size={20} color="#FFFFFF" />
+                <Text style={styles.swipeActionText}>Edit</Text>
+            </View>
+        );
+    };
+
+    const renderRightActions = () => {
+        if (isDone || !onSkip) return null;
+        return (
+            <View style={styles.swipeRightAction}>
+                <FontAwesome5 name="fast-forward" size={20} color="#FFFFFF" />
+                <Text style={styles.swipeActionText}>Skip</Text>
+            </View>
+        );
+    };
+
     return (
-        <Animated.View style={[animatedStyle]}>
-            <Pressable onPress={handleCardPress}>
-                <View style={[styles.container, isDone && styles.containerCompleted, isOverdue && styles.containerOverdue]}>
-                    {/* Main row: checkbox + title + points */}
-                    <View style={styles.mainRow}>
-                        <TouchableOpacity onPress={handleCheckbox} style={styles.checkboxTouchable}>
-                            <View style={[styles.checkbox, isDone && styles.checkboxActive]}>
-                                {isDone && (
-                                    <FontAwesome5 name="check" size={14} color="#FFFFFF" />
+        <Animated.View style={[animatedStyle, styles.cardWrapper]}>
+            <Swipeable
+                ref={swipeableRef}
+                renderLeftActions={renderLeftActions}
+                renderRightActions={renderRightActions}
+                onSwipeableLeftOpen={() => {
+                    swipeableRef.current?.close();
+                    if (onEditTimes) onEditTimes(habit.id);
+                }}
+                onSwipeableRightOpen={() => {
+                    swipeableRef.current?.close();
+                    if (!isDone) handleSkip();
+                }}
+                friction={2}
+                rightThreshold={40}
+                leftThreshold={40}
+            >
+                <Pressable onPress={handleCardPress}>
+                    <View style={[styles.container, isDone && styles.containerCompleted, isOverdue && styles.containerOverdue]}>
+                        {/* Main row: checkbox + title + points */}
+                        <View style={styles.mainRow}>
+                            <TouchableOpacity onPress={handleCheckbox} style={styles.checkboxTouchable}>
+                                <View style={[styles.checkbox, isDone && styles.checkboxActive]}>
+                                    {isDone && (
+                                        <FontAwesome5 name="check" size={14} color="#FFFFFF" />
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+                            <View style={styles.titleContainer}>
+                                <Text style={[styles.title, isDone && styles.titleCompleted]} numberOfLines={1}>
+                                    {habit.title}
+                                </Text>
+                                {habit.dueTime && !isDone && (
+                                    <Text style={[styles.dueTimeText, isOverdue && styles.dueTimeOverdue]}>
+                                        {isOverdue ? '⚠ Overdue' : `Due by ${formatTime(habit.dueTime)}`}
+                                    </Text>
                                 )}
                             </View>
-                        </TouchableOpacity>
-                        <View style={styles.titleContainer}>
-                            <Text style={[styles.title, isDone && styles.titleCompleted]} numberOfLines={1}>
-                                {habit.title}
-                            </Text>
-                            {habit.dueTime && !isDone && (
-                                <Text style={[styles.dueTimeText, isOverdue && styles.dueTimeOverdue]}>
-                                    {isOverdue ? '⚠ Overdue' : `Due by ${formatTime(habit.dueTime)}`}
-                                </Text>
-                            )}
-                        </View>
-                        <View style={styles.rightRow}>
-                            {habit.timerMinutes && !isDone ? (
-                                <View style={styles.timerBadge}>
-                                    <FontAwesome5 name="clock" size={10} color="#FF6B6B" />
-                                    <Text style={styles.timerBadgeText}>{habit.timerMinutes}m</Text>
+                            <View style={styles.rightRow}>
+                                {habit.timerMinutes && !isDone ? (
+                                    <View style={styles.timerBadge}>
+                                        <FontAwesome5 name="clock" size={10} color="#FF6B6B" />
+                                        <Text style={styles.timerBadgeText}>{habit.timerMinutes}m</Text>
+                                    </View>
+                                ) : null}
+                                <View style={[styles.pointsPill, isDone && styles.pointsPillCompleted]}>
+                                    <Text style={[styles.pointsText, isDone && styles.pointsTextCompleted]}>+{habit.pointsValue}</Text>
                                 </View>
-                            ) : null}
-                            <View style={[styles.pointsPill, isDone && styles.pointsPillCompleted]}>
-                                <Text style={[styles.pointsText, isDone && styles.pointsTextCompleted]}>+{habit.pointsValue}</Text>
                             </View>
                         </View>
+
+                        {/* Expanded action panel */}
+                        {expanded && !isDone && (
+                            <View style={styles.actionPanel}>
+                                <TouchableOpacity style={styles.actionButton} onPress={handleCheckbox}>
+                                    <View style={[styles.actionIcon, { backgroundColor: '#F0FAF0' }]}>
+                                        <FontAwesome5 name="check" size={12} color="#4A8C4A" />
+                                    </View>
+                                    <Text style={styles.actionLabel}>Done</Text>
+                                </TouchableOpacity>
+
+                                {onEditTimes ? (
+                                    <TouchableOpacity style={styles.actionButton} onPress={() => { setExpanded(false); onEditTimes(habit.id); }}>
+                                        <View style={[styles.actionIcon, { backgroundColor: '#F0F5FF' }]}>
+                                            <FontAwesome5 name="clock" size={12} color="#4A90E2" />
+                                        </View>
+                                        <Text style={styles.actionLabel}>Edit</Text>
+                                    </TouchableOpacity>
+                                ) : null}
+
+                                {habit.timerMinutes && onTimer ? (
+                                    <TouchableOpacity style={styles.actionButton} onPress={() => { setExpanded(false); onTimer(habit.id); }}>
+                                        <View style={[styles.actionIcon, { backgroundColor: '#FFF0E8' }]}>
+                                            <FontAwesome5 name="stopwatch" size={12} color="#FF8C42" />
+                                        </View>
+                                        <Text style={styles.actionLabel}>Timer</Text>
+                                    </TouchableOpacity>
+                                ) : null}
+
+                                {isOverdue && onExtendDue ? (
+                                    <TouchableOpacity style={styles.actionButton} onPress={handleExtend}>
+                                        <View style={[styles.actionIcon, { backgroundColor: '#FFF5E6' }]}>
+                                            <FontAwesome5 name="clock" size={12} color="#FF8C42" />
+                                        </View>
+                                        <Text style={styles.actionLabel}>+1h</Text>
+                                    </TouchableOpacity>
+                                ) : null}
+
+                                {onSkip && (
+                                    <TouchableOpacity style={styles.actionButton} onPress={handleSkip}>
+                                        <View style={[styles.actionIcon, { backgroundColor: '#F5F5F5' }]}>
+                                            <FontAwesome5 name="times" size={12} color="#B0B0B0" />
+                                        </View>
+                                        <Text style={styles.actionLabel}>Skip</Text>
+                                    </TouchableOpacity>
+                                )}
+
+                                {onPostpone && (
+                                    <TouchableOpacity style={styles.actionButton} onPress={handlePostpone}>
+                                        <View style={[styles.actionIcon, { backgroundColor: '#FFE4E1' }]}>
+                                            <FontAwesome5 name="calendar-plus" size={12} color="#FF6B6B" />
+                                        </View>
+                                        <Text style={styles.actionLabel}>Move</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        )}
                     </View>
-
-                    {/* Expanded action panel */}
-                    {expanded && !isDone && (
-                        <View style={styles.actionPanel}>
-                            <TouchableOpacity style={styles.actionButton} onPress={handleCheckbox}>
-                                <View style={[styles.actionIcon, { backgroundColor: '#F0FAF0' }]}>
-                                    <FontAwesome5 name="check" size={12} color="#4A8C4A" />
-                                </View>
-                                <Text style={styles.actionLabel}>Done</Text>
-                            </TouchableOpacity>
-
-                            {habit.timerMinutes && onTimer ? (
-                                <TouchableOpacity style={styles.actionButton} onPress={() => { setExpanded(false); onTimer(habit.id); }}>
-                                    <View style={[styles.actionIcon, { backgroundColor: '#FFF0E8' }]}>
-                                        <FontAwesome5 name="stopwatch" size={12} color="#FF8C42" />
-                                    </View>
-                                    <Text style={styles.actionLabel}>Timer</Text>
-                                </TouchableOpacity>
-                            ) : null}
-
-                            {isOverdue && onExtendDue ? (
-                                <TouchableOpacity style={styles.actionButton} onPress={handleExtend}>
-                                    <View style={[styles.actionIcon, { backgroundColor: '#FFF5E6' }]}>
-                                        <FontAwesome5 name="clock" size={12} color="#FF8C42" />
-                                    </View>
-                                    <Text style={styles.actionLabel}>+1h</Text>
-                                </TouchableOpacity>
-                            ) : null}
-
-                            {onSkip && (
-                                <TouchableOpacity style={styles.actionButton} onPress={handleSkip}>
-                                    <View style={[styles.actionIcon, { backgroundColor: '#F5F5F5' }]}>
-                                        <FontAwesome5 name="times" size={12} color="#B0B0B0" />
-                                    </View>
-                                    <Text style={styles.actionLabel}>Skip</Text>
-                                </TouchableOpacity>
-                            )}
-
-                            {onPostpone && (
-                                <TouchableOpacity style={styles.actionButton} onPress={handlePostpone}>
-                                    <View style={[styles.actionIcon, { backgroundColor: '#FFE4E1' }]}>
-                                        <FontAwesome5 name="calendar-plus" size={12} color="#FF6B6B" />
-                                    </View>
-                                    <Text style={styles.actionLabel}>Move</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    )}
-                </View>
-            </Pressable>
+                </Pressable>
+            </Swipeable>
         </Animated.View>
     );
 };
 
 const styles = StyleSheet.create({
+    cardWrapper: {
+        marginBottom: 10,
+        marginHorizontal: 16,
+    },
     container: {
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
-        marginBottom: 10,
-        marginHorizontal: 16,
         borderWidth: 1,
         borderColor: '#F0F0F0',
         borderLeftWidth: 4,
@@ -323,5 +375,27 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '600',
         color: '#555555',
+    },
+    swipeLeftAction: {
+        backgroundColor: '#4A90E2',
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+        paddingLeft: 24,
+        flex: 1,
+        borderRadius: 16,
+    },
+    swipeRightAction: {
+        backgroundColor: '#B0B0B0',
+        justifyContent: 'center',
+        alignItems: 'flex-end',
+        paddingRight: 24,
+        flex: 1,
+        borderRadius: 16,
+    },
+    swipeActionText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginTop: 4,
     },
 });
