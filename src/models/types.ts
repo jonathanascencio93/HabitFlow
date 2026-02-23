@@ -7,7 +7,7 @@ export interface RecurrenceRule {
   startDate: string;        // ISO date string — anchor for 'every_other_day' and 'weekly'
 }
 
-export type HabitStatus = 'pending' | 'done' | 'postponed';
+export type HabitStatus = 'pending' | 'done' | 'postponed' | 'skipped';
 
 export interface Habit {
   id: string;

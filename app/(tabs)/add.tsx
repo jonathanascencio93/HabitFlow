@@ -14,6 +14,7 @@ export default function AddHabitScreen() {
     const [points, setPoints] = useState('10');
     const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('daily');
     const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]); // Mon-Fri default
+    const [weeklyDay, setWeeklyDay] = useState(new Date().getDay()); // default to today's day
     const [dayOfMonth, setDayOfMonth] = useState('1');
 
     const { addHabit } = useHabit();
@@ -32,13 +33,13 @@ export default function AddHabitScreen() {
         const today = new Date().toISOString().split('T')[0];
         switch (recurrenceType) {
             case 'daily':
-                return undefined; // No rule = daily (backward compatible)
+                return undefined;
             case 'specific_days':
                 return { type: 'specific_days', daysOfWeek: selectedDays, startDate: today };
             case 'every_other_day':
                 return { type: 'every_other_day', startDate: today };
             case 'weekly':
-                return { type: 'weekly', startDate: today };
+                return { type: 'weekly', daysOfWeek: [weeklyDay], startDate: today };
             case 'monthly':
                 return { type: 'monthly', dayOfMonth: parseInt(dayOfMonth) || 1, startDate: today };
             default:
@@ -177,10 +178,43 @@ export default function AddHabitScreen() {
                             </View>
                         )}
 
+                        {/* Day picker for 'weekly' — pick ONE day */}
+                        {recurrenceType === 'weekly' && (
+                            <View style={styles.dayPickerContainer}>
+                                <Text style={styles.dayPickerLabel}>Which day of the week?</Text>
+                                <View style={styles.dayRow}>
+                                    {DAY_LABELS.map((label, index) => (
+                                        <TouchableOpacity
+                                            key={index}
+                                            style={[
+                                                styles.dayCircle,
+                                                weeklyDay === index && styles.dayCircleActive,
+                                            ]}
+                                            onPress={() => setWeeklyDay(index)}
+                                        >
+                                            <Text style={[
+                                                styles.dayText,
+                                                weeklyDay === index && styles.dayTextActive,
+                                            ]}>
+                                                {label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+                        )}
+
+                        {/* Every other day info */}
+                        {recurrenceType === 'every_other_day' && (
+                            <View style={styles.dayPickerContainer}>
+                                <Text style={styles.dayPickerLabel}>Starts from today and alternates every other day</Text>
+                            </View>
+                        )}
+
                         {/* Day-of-month picker for 'monthly' */}
                         {recurrenceType === 'monthly' && (
                             <View style={styles.dayPickerContainer}>
-                                <Text style={styles.dayPickerLabel}>Day of month</Text>
+                                <Text style={styles.dayPickerLabel}>Which day of the month? (1-31)</Text>
                                 <TextInput
                                     style={styles.monthDayInput}
                                     value={dayOfMonth}

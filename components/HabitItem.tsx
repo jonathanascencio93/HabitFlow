@@ -15,9 +15,10 @@ interface HabitItemProps {
     habit: Habit;
     onToggle: (id: string) => void;
     onPostpone?: (id: string) => void;
+    onSkip?: (id: string) => void;
 }
 
-export const HabitItem = ({ habit, onToggle, onPostpone }: HabitItemProps) => {
+export const HabitItem = ({ habit, onToggle, onPostpone, onSkip }: HabitItemProps) => {
     const scale = useSharedValue(1);
     const isDone = habit.status === 'done';
 
@@ -60,6 +61,11 @@ export const HabitItem = ({ habit, onToggle, onPostpone }: HabitItemProps) => {
                     </Text>
                 </View>
                 <View style={styles.rightContent}>
+                    {!isDone && onSkip && (
+                        <TouchableOpacity style={styles.skipButton} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onSkip(habit.id); }}>
+                            <FontAwesome5 name="times" size={12} color="#B0B0B0" />
+                        </TouchableOpacity>
+                    )}
                     {!isDone && onPostpone && (
                         <TouchableOpacity style={styles.postponeButton} onPress={handlePostpone}>
                             <FontAwesome5 name="calendar-plus" size={14} color="#717171" />
@@ -127,6 +133,14 @@ const styles = StyleSheet.create({
     },
     titleCompleted: {
         color: '#4A8C4A',
+    },
+    skipButton: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: '#F5F5F5',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     postponeButton: {
         width: 32,

@@ -24,11 +24,13 @@ interface HabitContextType {
     activeHabits: Habit[];
     completedHabits: Habit[];
     postponedHabits: Habit[];
+    skippedHabits: Habit[];
     userStats: UserStats;
     addHabit: (habit: Omit<Habit, 'id' | 'status'>) => void;
     toggleHabitCompletion: (id: string) => void;
     postponeHabit: (id: string, targetDate: string) => void;
     unpostponeHabit: (id: string) => void;
+    skipHabit: (id: string) => void;
     resetDailyProgression: () => void;
 }
 
@@ -65,6 +67,9 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
             return false;
         }
 
+        // Skipped habits don't show today
+        if (habit.status === 'skipped') return false;
+
         const rule = habit.recurrence;
         if (!rule || rule.type === 'daily') return true;
 
@@ -81,6 +86,10 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
                 return diffDays % 2 === 0;
             }
             case 'weekly': {
+                // Weekly now uses daysOfWeek (single day) instead of startDate
+                if (rule.daysOfWeek && rule.daysOfWeek.length > 0) {
+                    return rule.daysOfWeek.includes(dayOfWeek);
+                }
                 const startDay = new Date(rule.startDate).getDay();
                 return dayOfWeek === startDay;
             }
@@ -95,6 +104,7 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
     const activeHabits = todaysHabits.filter(h => h.status === 'pending');
     const completedHabits = todaysHabits.filter(h => h.status === 'done');
     const postponedHabits = habits.filter(h => h.status === 'postponed');
+    const skippedHabits = habits.filter(h => h.status === 'skipped');
 
     useEffect(() => {
         const loadData = async () => {
@@ -214,15 +224,31 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
         saveHabits(updatedHabits);
     };
 
+    const skipHabit = (id: string) => {
+        const updatedHabits = habits.map(habit => {
+            if (habit.id === id) {
+                return { ...habit, status: 'skipped' as const };
+            }
+            return habit;
+        });
+        saveHabits(updatedHabits);
+    };
+
     const resetDailyProgression = () => {
-        const resetHabits = habits.map(h => ({ ...h, status: 'pending' as const }));
+        // Reset done AND skipped back to pending on new day
+        const resetHabits = habits.map(h => {
+            if (h.status === 'done' || h.status === 'skipped') {
+                return { ...h, status: 'pending' as const };
+            }
+            return h;
+        });
         saveHabits(resetHabits);
     };
 
     return (
         <HabitContext.Provider value={{
-            habits, todaysHabits, activeHabits, completedHabits, postponedHabits,
-            userStats, addHabit, toggleHabitCompletion, postponeHabit, unpostponeHabit, resetDailyProgression,
+            habits, todaysHabits, activeHabits, completedHabits, postponedHabits, skippedHabits,
+            userStats, addHabit, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, resetDailyProgression,
         }}>
             {children}
         </HabitContext.Provider>

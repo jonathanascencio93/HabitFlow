@@ -26,7 +26,7 @@ const addDays = (days: number): Date => {
 const toISODate = (d: Date) => d.toISOString().split('T')[0];
 
 export default function DashboardScreen() {
-  const { activeHabits, completedHabits, postponedHabits, toggleHabitCompletion, postponeHabit, unpostponeHabit } = useHabit();
+  const { activeHabits, completedHabits, postponedHabits, skippedHabits, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit } = useHabit();
   const { user } = useAuth();
   const displayName = user?.displayName || 'there';
   const [showCompleted, setShowCompleted] = useState(true);
@@ -91,6 +91,7 @@ export default function DashboardScreen() {
             habit={habit}
             onToggle={toggleHabitCompletion}
             onPostpone={handlePostponeRequest}
+            onSkip={skipHabit}
           />
         ))}
       </View>
@@ -170,6 +171,26 @@ export default function DashboardScreen() {
                 >
                   <FontAwesome5 name="undo" size={12} color="#FF6B6B" />
                   <Text style={styles.bringBackText}>Bring Back</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+        {/* Skipped Today section */}
+        {skippedHabits.length > 0 && (
+          <View style={styles.skippedSection}>
+            <Text style={styles.skippedTitle}>
+              Skipped ({skippedHabits.length})
+            </Text>
+            {skippedHabits.map(habit => (
+              <View key={habit.id} style={styles.skippedItem}>
+                <Text style={styles.skippedItemTitle}>{habit.title}</Text>
+                <TouchableOpacity
+                  style={styles.undoSkipButton}
+                  onPress={() => unpostponeHabit(habit.id)}
+                >
+                  <FontAwesome5 name="undo" size={11} color="#717171" />
+                  <Text style={styles.undoSkipText}>Undo</Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -492,5 +513,49 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#FF6B6B',
+  },
+  // Skipped Section
+  skippedSection: {
+    marginTop: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  skippedTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#B0B0B0',
+    paddingHorizontal: 24,
+    marginBottom: 10,
+  },
+  skippedItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginBottom: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+  },
+  skippedItemTitle: {
+    fontSize: 14,
+    color: '#B0B0B0',
+    textDecorationLine: 'line-through',
+  },
+  undoSkipButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#F0F0F0',
+  },
+  undoSkipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#717171',
   },
 });
