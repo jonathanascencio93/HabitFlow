@@ -9,6 +9,7 @@ import { auth } from '@/src/config/firebase';
 import { signOut } from 'firebase/auth';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
+import { useRouter } from 'expo-router';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 // Helper to format date nicely
@@ -27,6 +28,7 @@ const addDays = (days: number): Date => {
 const toISODate = (d: Date) => d.toISOString().split('T')[0];
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const { activeHabits, completedHabits, postponedHabits, skippedHabits, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, updateHabitTimes } = useHabit();
   const { user } = useAuth();
   const displayName = user?.displayName || 'there';
@@ -109,6 +111,7 @@ export default function DashboardScreen() {
             onSkip={skipHabit}
             onTimer={handleTimerOpen}
             onExtendDue={(id, newTime) => updateHabitTimes(id, newTime)}
+            onEditActivity={(id) => router.push({ pathname: '/edit', params: { id } })}
           />
         ))}
       </View>
