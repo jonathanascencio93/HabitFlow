@@ -27,6 +27,7 @@ const formatTime = (time: string): string => {
 interface HabitItemProps {
     habit: Habit;
     onToggle: (id: string) => void;
+    onDecrement?: (id: string) => void;
     onPostpone?: (id: string) => void;
     onSkip?: (id: string) => void;
     onTimer?: (id: string) => void;
@@ -34,10 +35,13 @@ interface HabitItemProps {
     onEditActivity?: (id: string) => void;
 }
 
-export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExtendDue, onEditActivity }: HabitItemProps) => {
+export const HabitItem = ({ habit, onToggle, onDecrement, onPostpone, onSkip, onTimer, onExtendDue, onEditActivity }: HabitItemProps) => {
     const scale = useSharedValue(1);
     const isDone = habit.status === 'done';
     const [expanded, setExpanded] = useState(false);
+
+    const target = habit.dailyTarget || 1;
+    const completions = habit.dailyCompletions || 0;
 
     // Check if overdue (past due time and still pending)
     const isOverdue = (() => {
@@ -78,6 +82,11 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExte
         }
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setExpanded(!expanded);
+    };
+
+    const handleMinus = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onDecrement?.(habit.id);
     };
 
     const handlePostpone = () => {
@@ -158,9 +167,9 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExte
                                 <Text style={[styles.title, isDone && styles.titleCompleted]} numberOfLines={1}>
                                     {habit.title}
                                 </Text>
-                                {habit.dueTime && !isDone && (
-                                    <Text style={[styles.dueTimeText, isOverdue && styles.dueTimeOverdue]}>
-                                        {isOverdue ? '⚠ Overdue' : `Due by ${formatTime(habit.dueTime)}`}
+                                {target > 1 && (
+                                    <Text style={[styles.progressText, isDone && styles.progressTextCompleted]}>
+                                        {completions} / {target}
                                     </Text>
                                 )}
                             </View>
@@ -180,6 +189,15 @@ export const HabitItem = ({ habit, onToggle, onPostpone, onSkip, onTimer, onExte
                         {/* Expanded action panel */}
                         {expanded && !isDone && (
                             <View style={styles.actionPanel}>
+                                {target > 1 && completions > 0 && onDecrement && (
+                                    <TouchableOpacity style={styles.actionButton} onPress={handleMinus}>
+                                        <View style={[styles.actionIcon, { backgroundColor: '#F0F5FF' }]}>
+                                            <FontAwesome5 name="minus" size={12} color="#4A90E2" />
+                                        </View>
+                                        <Text style={styles.actionLabel}>Undo -1</Text>
+                                    </TouchableOpacity>
+                                )}
+
                                 {habit.timerMinutes && onTimer ? (
                                     <TouchableOpacity style={styles.actionButton} onPress={() => { setExpanded(false); onTimer(habit.id); }}>
                                         <View style={[styles.actionIcon, { backgroundColor: '#FFF0E8' }]}>
@@ -282,6 +300,20 @@ const styles = StyleSheet.create({
     },
     titleContainer: {
         flex: 1,
+        flexDirection: 'column',
+    },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    progressText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#4A90E2',
+        marginLeft: 8,
+    },
+    progressTextCompleted: {
+        color: '#4A8C4A',
     },
     dueTimeText: {
         fontSize: 12,

@@ -29,6 +29,7 @@ interface HabitContextType {
     userStats: UserStats;
     addHabit: (habit: Omit<Habit, 'id' | 'status'>) => void;
     toggleHabitCompletion: (id: string) => void;
+    decrementHabitCompletion: (id: string) => void;
     postponeHabit: (id: string, targetDate: string) => void;
     unpostponeHabit: (id: string) => void;
     skipHabit: (id: string) => void;
@@ -188,6 +189,8 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
             ...habitData,
             id: Date.now().toString(),
             status: 'pending',
+            dailyCompletions: 0,
+            dailyTarget: habitData.dailyTarget || 1,
         };
         saveHabits([...habits, newHabit]);
         // Schedule notification if reminder is set
@@ -200,11 +203,24 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
         let pointsToAdd = 0;
         const updatedHabits = habits.map(habit => {
             if (habit.id === id) {
-                const newStatus = habit.status === 'done' ? 'pending' : 'done';
-                if (newStatus === 'done') pointsToAdd = habit.pointsValue;
-                else pointsToAdd = -habit.pointsValue;
+                const target = habit.dailyTarget || 1;
+                const currentCompletions = habit.dailyCompletions || 0;
 
-                return { ...habit, status: newStatus } as Habit;
+                if (habit.status === 'done') {
+                    // Un-check purely moves it back to pending and zeroes points,
+                    // but preserves completions at target - 1 to allow continuation
+                    pointsToAdd = -habit.pointsValue;
+                    return { ...habit, status: 'pending', dailyCompletions: Math.max(0, target - 1) } as Habit;
+                } else {
+                    // Increment completions
+                    const newCompletions = currentCompletions + 1;
+                    if (newCompletions >= target) {
+                        pointsToAdd = habit.pointsValue;
+                        return { ...habit, status: 'done', dailyCompletions: target } as Habit;
+                    } else {
+                        return { ...habit, dailyCompletions: newCompletions } as Habit;
+                    }
+                }
             }
             return habit;
         });
@@ -217,6 +233,17 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
                 totalPoints: userStats.totalPoints + pointsToAdd,
             });
         }
+    };
+
+    const decrementHabitCompletion = (id: string) => {
+        const updatedHabits = habits.map(habit => {
+            if (habit.id === id && habit.status === 'pending') {
+                const currentCompletions = habit.dailyCompletions || 0;
+                return { ...habit, dailyCompletions: Math.max(0, currentCompletions - 1) } as Habit;
+            }
+            return habit;
+        });
+        saveHabits(updatedHabits);
     };
 
     const postponeHabit = (id: string, targetDate: string) => {
@@ -258,9 +285,9 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
         // Reset done AND skipped back to pending on new day
         const resetHabits = habits.map(h => {
             if (h.status === 'done' || h.status === 'skipped') {
-                return { ...h, status: 'pending' as const };
+                return { ...h, status: 'pending' as const, dailyCompletions: 0 };
             }
-            return h;
+            return { ...h, dailyCompletions: 0 };
         });
         saveHabits(resetHabits);
     };
@@ -315,7 +342,7 @@ export const HabitProvider = ({ children }: { children: ReactNode }) => {
     return (
         <HabitContext.Provider value={{
             habits, todaysHabits, activeHabits, completedHabits, postponedHabits, skippedHabits,
-            userStats, addHabit, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, updateHabitTimes, updateHabit, deleteHabit, resetDailyProgression,
+            userStats, addHabit, toggleHabitCompletion, decrementHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, updateHabitTimes, updateHabit, deleteHabit, resetDailyProgression,
         }}>
             {children}
         </HabitContext.Provider>

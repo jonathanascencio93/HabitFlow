@@ -20,6 +20,10 @@ export interface Habit {
   postponedUntil?: string;
   dueTime?: string;          // HH:MM — when this activity should be done by
   reminderTime?: string;     // HH:MM — when to send push notification
+  dailyTarget?: number;      // how many times a day this habit should be done
+  dailyCompletions?: number; // how many times it has been done today
+  reminderFrequencyHours?: number; // Hours between intraday reminders
+  reminderEndTime?: string;  // HH:MM — when to stop intraday reminders
 }
 
 export interface UserStats {

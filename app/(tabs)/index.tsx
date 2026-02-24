@@ -29,7 +29,7 @@ const toISODate = (d: Date) => d.toISOString().split('T')[0];
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { activeHabits, completedHabits, postponedHabits, skippedHabits, toggleHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, updateHabitTimes } = useHabit();
+  const { activeHabits, completedHabits, postponedHabits, skippedHabits, toggleHabitCompletion, decrementHabitCompletion, postponeHabit, unpostponeHabit, skipHabit, updateHabitTimes } = useHabit();
   const { user } = useAuth();
   const displayName = user?.displayName || 'there';
   const [showCompleted, setShowCompleted] = useState(true);
@@ -107,6 +107,7 @@ export default function DashboardScreen() {
             key={habit.id}
             habit={habit}
             onToggle={toggleHabitCompletion}
+            onDecrement={decrementHabitCompletion}
             onPostpone={handlePostponeRequest}
             onSkip={skipHabit}
             onTimer={handleTimerOpen}
@@ -166,6 +167,7 @@ export default function DashboardScreen() {
                 key={habit.id}
                 habit={habit}
                 onToggle={toggleHabitCompletion}
+                onDecrement={decrementHabitCompletion}
               />
             ))}
           </View>

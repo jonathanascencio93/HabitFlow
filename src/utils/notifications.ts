@@ -52,7 +52,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 }
 
 // Schedule a daily notification for a habit at its reminderTime
-export async function scheduleHabitReminder(habit: Habit): Promise<string | null> {
+export async function scheduleHabitReminder(habit: Habit): Promise<string[] | null> {
     try {
         if (!habit.reminderTime) return null;
 
@@ -60,21 +60,63 @@ export async function scheduleHabitReminder(habit: Habit): Promise<string | null
 
         const [hours, minutes] = habit.reminderTime.split(':').map(Number);
 
-        const identifier = await Notifications.scheduleNotificationAsync({
-            content: {
-                title: '⏰ Habit Reminder',
-                body: `Time for: ${habit.title}`,
-                data: { habitId: habit.id },
-                sound: 'default',
-            },
-            trigger: {
-                type: Notifications.SchedulableTriggerInputTypes.DAILY,
-                hour: hours,
-                minute: minutes,
-            },
-        });
+        let frequency = habit.reminderFrequencyHours || 0;
+        let endHours = hours;
+        let endMinutes = minutes;
 
-        return identifier;
+        if (habit.reminderEndTime && frequency > 0) {
+            const [eH, eM] = habit.reminderEndTime.split(':').map(Number);
+            endHours = eH;
+            endMinutes = eM;
+
+            // Handle cross-midnight by adding 24 to endHours if it's smaller than start hours
+            if (endHours < hours || (endHours === hours && endMinutes < minutes)) {
+                endHours += 24;
+            }
+        }
+
+        const scheduledIds: string[] = [];
+        let currentIterHour = hours;
+        let count = 0;
+
+        while (true) {
+            // Check if we've passed the end time boundary
+            // We use total minutes since midnight (of day 1) to compare
+            const currentTotalMinutes = (currentIterHour * 60) + minutes;
+            const endTotalMinutes = (endHours * 60) + endMinutes;
+
+            if (currentTotalMinutes > endTotalMinutes) {
+                break;
+            }
+
+            let hourToSchedule = currentIterHour % 24; // wrap around midnight
+
+            const identifier = await Notifications.scheduleNotificationAsync({
+                content: {
+                    title: '⏰ Habit Reminder',
+                    body: `Time for: ${habit.title}${count > 0 ? ` (Reminder ${count + 1})` : ''}`,
+                    data: { habitId: habit.id },
+                    sound: 'default',
+                },
+                trigger: {
+                    type: Notifications.SchedulableTriggerInputTypes.DAILY,
+                    hour: hourToSchedule,
+                    minute: minutes,
+                },
+            });
+            scheduledIds.push(identifier);
+
+            // If no frequency is set, or we only wanted to schedule once, break
+            if (frequency === 0) break;
+
+            currentIterHour += frequency;
+            count++;
+
+            // Safety measure to prevent infinite loops (max 24 notifications per day)
+            if (count > 24) break;
+        }
+
+        return scheduledIds.length > 0 ? scheduledIds : null;
     } catch (e) {
         console.log('Could not schedule notification:', e);
         return null;

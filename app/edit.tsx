@@ -25,6 +25,10 @@ export default function EditHabitScreen() {
     const [reminderTime, setReminderTime] = useState(new Date());
     const [showDuePicker, setShowDuePicker] = useState(false);
     const [showReminderPicker, setShowReminderPicker] = useState(false);
+    const [dailyTarget, setDailyTarget] = useState(1);
+    const [reminderFrequencyHours, setReminderFrequencyHours] = useState<number>(0);
+    const [reminderEndTime, setReminderEndTime] = useState(new Date());
+    const [showReminderEndPicker, setShowReminderEndPicker] = useState(false);
 
     const { habits, updateHabit, deleteHabit } = useHabit();
     const router = useRouter();
@@ -45,7 +49,16 @@ export default function EditHabitScreen() {
                 } else {
                     setRecurrenceType('daily');
                 }
+
+                if (habit.dailyTarget) setDailyTarget(habit.dailyTarget);
                 if (habit.timerMinutes) setTimerMinutes(habit.timerMinutes);
+                if (habit.reminderFrequencyHours) setReminderFrequencyHours(habit.reminderFrequencyHours);
+                if (habit.reminderEndTime) {
+                    const d = new Date();
+                    const [h, m] = habit.reminderEndTime.split(':').map(Number);
+                    d.setHours(h, m, 0, 0);
+                    setReminderEndTime(d);
+                }
 
                 if (habit.dueTime) {
                     setHasDueTime(true);
@@ -107,6 +120,9 @@ export default function EditHabitScreen() {
             timerMinutes: timerMinutes > 0 ? timerMinutes : undefined,
             dueTime: hasDueTime ? toHHMM(dueTime) : undefined,
             reminderTime: hasReminder ? toHHMM(reminderTime) : undefined,
+            dailyTarget,
+            reminderFrequencyHours: (hasReminder && reminderFrequencyHours > 0) ? reminderFrequencyHours : undefined,
+            reminderEndTime: (hasReminder && reminderFrequencyHours > 0) ? toHHMM(reminderEndTime) : undefined,
         });
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -303,6 +319,25 @@ export default function EditHabitScreen() {
                                 />
                             </View>
                         )}
+
+                        {/* Times Per Day (Intraday Recurrence) */}
+                        <Text style={styles.label}>Times per day</Text>
+                        <View style={styles.counterRow}>
+                            <TouchableOpacity
+                                style={styles.counterBtn}
+                                onPress={() => setDailyTarget(Math.max(1, dailyTarget - 1))}
+                            >
+                                <FontAwesome5 name="minus" size={16} color="#4A90E2" />
+                            </TouchableOpacity>
+                            <Text style={styles.counterValue}>{dailyTarget}</Text>
+                            <TouchableOpacity
+                                style={styles.counterBtn}
+                                onPress={() => setDailyTarget(dailyTarget + 1)}
+                            >
+                                <FontAwesome5 name="plus" size={16} color="#4A90E2" />
+                            </TouchableOpacity>
+                        </View>
+
                         {/* Timer duration */}
                         <Text style={styles.label}>Timer</Text>
                         <View style={styles.pillContainer}>
@@ -377,7 +412,7 @@ export default function EditHabitScreen() {
                         <View style={styles.toggleRow}>
                             <View style={styles.toggleInfo}>
                                 <FontAwesome5 name="bell" size={14} color="#FF8C42" />
-                                <Text style={styles.toggleLabel}>Reminder</Text>
+                                <Text style={styles.toggleLabel}>Start Reminders At</Text>
                             </View>
                             <Switch
                                 value={hasReminder}
@@ -421,6 +456,66 @@ export default function EditHabitScreen() {
                                 )}
                             </>
                         ) : null}
+
+                        {hasReminder && (
+                            <View style={styles.frequencyContainer}>
+                                <Text style={styles.frequencyLabel}>Repeat Every (Hours)</Text>
+                                <View style={styles.pillContainer}>
+                                    {[0, 1, 2, 4, 8].map(hrs => (
+                                        <TouchableOpacity
+                                            key={hrs}
+                                            style={[styles.pill, reminderFrequencyHours === hrs && styles.pillActive]}
+                                            onPress={() => setReminderFrequencyHours(hrs)}
+                                        >
+                                            <Text style={[styles.pillText, reminderFrequencyHours === hrs && styles.pillTextActive]}>
+                                                {hrs === 0 ? 'None' : `${hrs}h`}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                {reminderFrequencyHours > 0 && (
+                                    <>
+                                        <Text style={[styles.frequencyLabel, { marginTop: 16 }]}>End Reminders At</Text>
+                                        {Platform.OS === 'web' ? (
+                                            <div style={{ padding: 14, backgroundColor: '#F7F7F7', borderRadius: 12, border: '1px solid #EBEBEB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <input
+                                                    type="time"
+                                                    value={`${reminderEndTime.getHours().toString().padStart(2, '0')}:${reminderEndTime.getMinutes().toString().padStart(2, '0')}`}
+                                                    onChange={(e) => {
+                                                        const [h, m] = e.target.value.split(':').map(Number);
+                                                        const newDate = new Date(reminderEndTime);
+                                                        newDate.setHours(h, m);
+                                                        setReminderEndTime(newDate);
+                                                    }}
+                                                    style={{ fontSize: 18, fontWeight: '600', color: '#222', border: 'none', backgroundColor: 'transparent', outline: 'none', width: '100%' }}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <TouchableOpacity style={[styles.timePicker, { marginTop: 0 }]} onPress={() => setShowReminderEndPicker(true)}>
+                                                    <Text style={styles.timePickerText}>
+                                                        {reminderEndTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </Text>
+                                                    <FontAwesome5 name="chevron-right" size={12} color="#999" />
+                                                </TouchableOpacity>
+                                                {showReminderEndPicker && (
+                                                    <DateTimePicker
+                                                        value={reminderEndTime}
+                                                        mode="time"
+                                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                                        onChange={(e: DateTimePickerEvent, d?: Date) => {
+                                                            setShowReminderEndPicker(Platform.OS === 'ios');
+                                                            if (d) setReminderEndTime(d);
+                                                        }}
+                                                    />
+                                                )}
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                            </View>
+                        )}
                     </View>
 
                     <TouchableOpacity
@@ -568,6 +663,33 @@ const styles = StyleSheet.create({
         width: 60,
         textAlign: 'center',
     },
+    counterRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        marginBottom: 28,
+        backgroundColor: '#FFFFFF',
+        alignSelf: 'flex-start',
+        borderRadius: 24,
+        padding: 4,
+        borderWidth: 1,
+        borderColor: '#EBEBEB',
+    },
+    counterBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#F0F5FF',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    counterValue: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#222222',
+        minWidth: 24,
+        textAlign: 'center',
+    },
     saveButton: {
         backgroundColor: '#FF6B6B',
         padding: 18,
@@ -633,5 +755,17 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '600',
         color: '#222222',
+    },
+    frequencyContainer: {
+        marginTop: 16,
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#F0F0F0',
+    },
+    frequencyLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#717171',
+        marginBottom: 8,
     },
 });
